@@ -1,0 +1,4 @@
+numpy>=1.22
+torch>=2.1          # with CUDA; install the build that matches your driver (https://pytorch.org)
+tensorboard
+pytest              # tests only

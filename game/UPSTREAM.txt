@@ -1,0 +1,4 @@
+upstream: https://github.com/pret/pokefirered commit 037335f4c725d7c9aecdac87066f2002b4bd7e14
+This repository tracks only its own files in game/ (Makefile.native, NATIVE_CHANGES.md, native/,
+include/gba/portable_abi.h). tools/fetch_game.sh downloads the rest, pret's files at the commit above, and applies
+native/pokefirered.patch, the simulator's changes to them.

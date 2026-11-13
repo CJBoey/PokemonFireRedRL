@@ -1,0 +1,35 @@
+# game/: only this repository's own files are tracked; tools/fetch_game.sh fetches pret/pokefirered around them
+/game/*
+!/game/UPSTREAM.txt
+!/game/Makefile.native
+!/game/NATIVE_CHANGES.md
+!/game/native/
+!/game/include/
+/game/include/*
+!/game/include/gba/
+/game/include/gba/*
+!/game/include/gba/portable_abi.h
+
+# build outputs
+/build/
+/build-*/
+*.o
+*.a
+*.so
+*.elf
+*.gba
+*.sav
+*.map
+__pycache__/
+*.pyc
+.cache/
+*.egg-info/
+
+# training runs (checkpoints, logs, TensorBoard)
+rl/runs/
+
+# map visualizer: rendered world, dwell tables, logs
+tools/mapviz/www/world/
+tools/mapviz/heat/
+tools/mapviz/logs/
+.pytest_cache/

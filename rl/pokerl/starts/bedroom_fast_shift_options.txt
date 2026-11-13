@@ -1,0 +1,16 @@
+# Options of every life's start (rl/pokerl/env.py START_SCRIPTS), merged after new_game_to_pallet.txt by
+# ScriptStart: from the bedroom (frame 5161), START -> OPTION, TEXT SPEED FAST, BATTLE SCENE OFF, leave the menu;
+# BATTLE STYLE stays the new-game default SHIFT (game/src/new_game.c SetDefaultOptions), so the game offers a switch
+# ("Will <PLAYER> change POKeMON?") whenever the opponent's mon faints in a trainer battle. Options are stored in
+# SaveBlock2 and survive the life. Lines: START END BUTTONS (frames [START, END) from power-on).
+5161 5162 START
+5170 5171 DOWN
+5173 5174 DOWN
+5176 5177 DOWN
+5179 5180 A
+5241 5242 RIGHT
+5244 5245 DOWN
+5247 5248 RIGHT
+5256 5257 B
+5319 5320 B
+5320 5324 NONE

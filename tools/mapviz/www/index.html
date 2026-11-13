@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokemonFireRedRL map</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg: #0b0d10; --panel: rgba(16, 19, 24, 0.86); --text: #e6e8eb; --dim: #9aa3ad; --line: #2a3038; --accent: #ffcb05; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+               font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  canvas { display: block; touch-action: none; }
+  #hud { position: fixed; top: 12px; left: 12px; max-width: min(440px, calc(100vw - 24px)); padding: 10px 12px;
+         background: var(--panel); border: 1px solid var(--line); border-radius: 8px; backdrop-filter: blur(4px); }
+  #hud .row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  #hud .row + .row { margin-top: 6px; }
+  #title { font-weight: 650; }
+  #run { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .dim { color: var(--dim); }
+  .num { font-variant-numeric: tabular-nums; }
+  button { font: inherit; color: var(--text); background: #1c2129; border: 1px solid var(--line); border-radius: 6px;
+           padding: 2px 9px; cursor: pointer; }
+  button[aria-pressed="true"] { background: #33404f; border-color: #4b5d72; }
+  input { font: inherit; color: var(--text); background: #11151a; border: 1px solid var(--line); border-radius: 6px;
+          padding: 2px 7px; width: 150px; }
+  #state.live { color: #7ee787; } #state.paused { color: #f2cc60; } #state.down { color: #ff7b72; }
+  #badges span { margin-right: 8px; }
+  #hud.collapsed .more, #hud:not(.heat-on) .heat, #hud:not(.nov-on) .nov { display: none; }
+  #heat-bar, #nov-bar { display: inline-block; width: 120px; height: 10px; border-radius: 3px; border: 1px solid var(--line); }
+  #heat-at, #nov-at { min-height: 1.45em; }
+  .sw { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; border-radius: 2px;
+        background: var(--c); }
+  .sw.ck { background: repeating-conic-gradient(var(--c) 0 25%, transparent 0 50%) 0 0 / 5px 5px; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="row">
+    <span id="title">PokemonFireRedRL map</span><span id="run">-</span>
+    <span class="dim num" id="envs"></span>
+    <a href="party.html" style="color: var(--accent)" title="Every env's party and moves, and a behaviour sample (switching, reorders, PC use)">Party</a>
+    <button id="collapse" title="Hide details">–</button>
+  </div>
+  <div class="row more">
+    <span id="state" class="down">connecting…</span>
+    <span class="dim num" id="cost"></span>
+    <button id="pause" aria-pressed="false" title="Stop the server reading the training (Space)">Pause</button>
+  </div>
+  <div class="row more">
+    <span class="dim">Map</span>
+    <button id="v-story" aria-pressed="true" title="Kanto and Sevii 1-3 (P)">Story</button>
+    <button id="v-full" aria-pressed="false" title="With the post-game: Sevii 4-7, Cerulean Cave, event islands (P)">Full</button>
+    <button id="labels" aria-pressed="false" title="Env labels (L)">Labels</button>
+    <button id="envs-btn" aria-pressed="true" title="Show the envs (E)">Envs</button>
+    <input id="filter" placeholder="filter: e12 | b[3-8]" title="Regular expression on 'e<env> b<badges>' (F)">
+  </div>
+  <div class="row more">
+    <span class="dim">Dwell</span>
+    <button id="heat" aria-pressed="false" title="Heatmap of where the envs spend their time, from the server's samples while a page is visible (M)">Heatmap</button>
+    <button class="heat" id="heat-battles" aria-pressed="true" title="Count time in battle on the tile where it happened (B)">Battles</button>
+    <button class="heat" id="heat-reset" title="Clear this run's heatmap on the server">Reset</button>
+  </div>
+  <div class="row more heat num"><span class="dim" id="heat-lo"></span><span id="heat-bar"></span><span class="dim" id="heat-hi"></span></div>
+  <div class="row more heat dim num" id="heat-sum"></div>
+  <div class="row more heat num" id="heat-at"></div>
+  <div class="row more">
+    <span class="dim">Novelty</span>
+    <button id="nov" aria-pressed="false" title="The tile-count bonus from the run's newest checkpoint: how much of it each tile still pays (N)">Tile bonus</button>
+    <button class="nov" id="nov-left" aria-pressed="true" title="Colour reached tiles by the share of the bonus a first visit still pays (R)">Left</button>
+    <button class="nov" id="nov-recent" aria-pressed="false" title="Colour reached tiles by their first visits over the last checkpoints; new tiles white (R)">Recent</button>
+    <button class="nov" id="nov-frontier" aria-pressed="true" title="Never-reached passable tiles next to reached ones (O)">Frontier</button>
+  </div>
+  <div class="row more nov num"><span class="dim" id="nov-lo"></span><span id="nov-bar"></span><span class="dim" id="nov-hi"></span></div>
+  <div class="row more nov dim num" id="nov-keys"></div>
+  <div class="row more nov dim num" id="nov-sum"></div>
+  <div class="row more nov num" id="nov-at"></div>
+  <div class="row more num" id="badges"></div>
+  <div class="row more dim">wheel / pinch zoom · drag pan · H home · L labels · F filter · P map · M heatmap · B battles · N tile bonus · R left/recent · O frontier · E envs · Space pause</div>
+</div>
+<script src="pixi.js"></script>
+<script src="viewer.js"></script>
+</body>
+</html>

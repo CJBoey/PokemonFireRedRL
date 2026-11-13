@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fireredsim"
+version = "0.1.0"
+description = "Pokemon FireRed (USA 1.0) recompiled natively: batched RL environments driving 32-bit simulator workers through shared memory"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+packages = ["fireredsim"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

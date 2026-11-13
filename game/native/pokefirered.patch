@@ -1,0 +1,2427 @@
+diff --git a/data/maps/Route23/scripts.inc b/data/maps/Route23/scripts.inc
+index d3912a1..07908c6 100644
+--- a/data/maps/Route23/scripts.inc
++++ b/data/maps/Route23/scripts.inc
+@@ -5,10 +5,14 @@ Route23_MapScripts::
+ Route23_OnTransition::
+ 	clearflag FLAG_HIDE_VICTORY_ROAD_3F_BOULDER
+ 	setflag FLAG_HIDE_VICTORY_ROAD_2F_BOULDER
++	@ fireredsim (game/NATIVE_CHANGES.md, docs/RELAY_SPEC.md section 6): with FLAG_PN_BOULDERS_SOLVED set the Victory
++	@ Road floor-switch variables keep their values (a new-game preset sets them to 100: barriers open)
++	goto_if_set FLAG_PN_BOULDERS_SOLVED, Route23_OnTransition_End
+ 	setvar VAR_MAP_SCENE_VICTORY_ROAD_1F, 0
+ 	setvar VAR_MAP_SCENE_VICTORY_ROAD_2F_BOULDER1, 0
+ 	setvar VAR_MAP_SCENE_VICTORY_ROAD_2F_BOULDER2, 0
+ 	setvar VAR_MAP_SCENE_VICTORY_ROAD_3F, 0
++Route23_OnTransition_End::
+ 	end
+ 
+ Route23_EventScript_CascadeBadgeGuard::
+diff --git a/include/bg.h b/include/bg.h
+index 8030ab8..c969c0c 100644
+--- a/include/bg.h
++++ b/include/bg.h
+@@ -66,13 +66,13 @@ enum BgTileAllocMode
+ 
+ struct BgTemplate
+ {
+-    u16 bg:2;                   // 0x1, 0x2 -> 0x3
+-    u16 charBaseIndex:2;        // 0x4, 0x8 -> 0xC
+-    u16 mapBaseIndex:5;         // 0x10, 0x20, 0x40, 0x80, 0x100 -> 0x1F0
+-    u16 screenSize:2;           // 0x200, 0x400 -> 0x600
+-    u16 paletteMode:1;          // 0x800
+-    u16 priority:2;             // 0x1000, 0x2000 > 0x3000
+-    u16 baseTile:10;
++    u16 bg:2 BITFIELD_PACKED;                   // 0x1, 0x2 -> 0x3
++    u16 charBaseIndex:2 BITFIELD_PACKED;        // 0x4, 0x8 -> 0xC
++    u16 mapBaseIndex:5 BITFIELD_PACKED;         // 0x10, 0x20, 0x40, 0x80, 0x100 -> 0x1F0
++    u16 screenSize:2 BITFIELD_PACKED;           // 0x200, 0x400 -> 0x600
++    u16 paletteMode:1 BITFIELD_PACKED;          // 0x800
++    u16 priority:2 BITFIELD_PACKED;             // 0x1000, 0x2000 > 0x3000
++    u16 baseTile:10 BITFIELD_PACKED;
+ };
+ 
+ void ResetBgs(void);
+diff --git a/include/config.h b/include/config.h
+index db131b2..b61528d 100644
+--- a/include/config.h
++++ b/include/config.h
+@@ -65,9 +65,13 @@
+ // Crashes may occur due to section reordering in the modern build,
+ // so we force BUGFIX here.
+ #if MODERN
++// fireredsim (PORTABLE): BUGFIX changes gameplay (battle/exp/IV/nature bugs of the
++// retail ROM). The simulator must reproduce the retail ROM, so it is not forced.
++#ifndef PORTABLE
+ #ifndef BUGFIX
+ #define BUGFIX
+ #endif // BUGFIX
++#endif // PORTABLE
+ #ifndef UBFIX
+ #define UBFIX
+ #endif // UBFIX
+diff --git a/include/constants/flags.h b/include/constants/flags.h
+index d800adf..4b62fd2 100644
+--- a/include/constants/flags.h
++++ b/include/constants/flags.h
+@@ -1223,6 +1223,7 @@
+ 
+ // Unused hidden item flags
+ #define FLAG_UNUSED_0x4A7               0x4A7 // Unused Flag
++#define FLAG_PN_BOULDERS_SOLVED         FLAG_UNUSED_0x4A7 // fireredsim: Route 23 keeps the Victory Road switch variables (docs/RELAY_SPEC.md section 6)
+ #define FLAG_UNUSED_0x4A8               0x4A8 // Unused Flag
+ #define FLAG_UNUSED_0x4A9               0x4A9 // Unused Flag
+ #define FLAG_UNUSED_0x4AA               0x4AA // Unused Flag
+diff --git a/include/field_effect.h b/include/field_effect.h
+index 23f309f..a2c95f8 100644
+--- a/include/field_effect.h
++++ b/include/field_effect.h
+@@ -28,4 +28,71 @@ void SpriteCB_PopOutOfAsh(struct Sprite *sprite);
+ void SpriteCB_AshLaunch(struct Sprite *sprite);
+ void FieldEffectActiveListClear(void);
+ 
++#ifdef PORTABLE
++// Every function that data/field_effect_scripts.s names in a callnative command
++// (game/NATIVE_CHANGES.md, ABI). Declared here because every defining file
++// includes this header: a declaration that does not match its definition is a
++// compile error, and FieldEffectScript_CallNative derives the return-value
++// extension from these types (PORT_RET_KIND, gba/portable_abi.h).
++u8 FldEff_ExclamationMarkIcon1(void);
++bool8 FldEff_UseCutOnGrass(void);
++bool8 FldEff_UseCutOnTree(void);
++u32 FldEff_Shadow(void);
++u32 FldEff_TallGrass(void);
++u32 FldEff_Ripple(void);
++u32 FldEff_FieldMoveShowMon(void);
++u32 FldEff_Ash(void);
++u32 FldEff_SurfBlob(void);
++u8 FldEff_UseSurf(void);
++u32 FldEff_Dust(void);
++u32 FldEff_JumpTallGrass(void);
++u32 FldEff_SandFootprints(void);
++u32 FldEff_JumpBigSplash(void);
++u32 FldEff_Splash(void);
++u32 FldEff_JumpSmallSplash(void);
++u32 FldEff_LongGrass(void);
++u32 FldEff_JumpLongGrass(void);
++u32 FldEff_UnusedGrass(void);
++u32 FldEff_UnusedGrass2(void);
++u32 FldEff_UnusedSand(void);
++u32 FldEff_UnusedWaterSurfacing(void);
++u32 FldEff_BerryTreeGrowthSparkle(void);
++u32 FldEff_DeepSandFootprints(void);
++bool8 FldEff_PokecenterHeal(void);
++u32 ShowTreeDisguiseFieldEffect(void);
++u32 ShowMountainDisguiseFieldEffect(void);
++u8 FldEff_NpcFlyOut(void);
++u8 FldEff_FlyOut(void);
++u32 FldEff_FlyIn(void);
++u8 FldEff_QuestionMarkIcon(void);
++u32 FldEff_FeetInFlowingWater(void);
++u32 FldEff_BikeTireTracks(void);
++u32 ShowSandDisguiseFieldEffect(void);
++bool8 FldEff_UseRockSmash(void);
++bool8 FldEff_UseStrength(void);
++bool8 FldEff_UseDig(void);
++u32 FldEff_SandPile(void);
++u32 FldEff_ShortGrass(void);
++u32 FldEff_HotSpringsWater(void);
++u32 FldEff_UseWaterfall(void);
++u32 FldEff_UseDive(void);
++bool8 FldEff_PokeballTrail(void);
++u8 FldEff_XIcon(void);
++u8 FldEff_PopOutOfAsh(void);
++u8 FldEff_LavaridgeGymWarp(void);
++bool8 FldEff_SweetScent(void);
++u32 FldEff_Bubbles(void);
++u32 FldEff_Sparkle(void);
++bool8 FldEff_CutGrass(void);
++u32 FldEff_FieldMoveShowMonInit(void);
++bool8 FldEff_HallOfFameRecord(void);
++bool8 FldEff_UseTeleport(void);
++u8 FldEff_SmileyFaceIcon(void);
++u32 FldEff_UseVsSeeker(void);
++u8 FldEff_DoubleExclMarkIcon(void);
++u32 FldEff_MoveDeoxysRock(void);
++u32 FldEff_DestroyDeoxysRock(void);
++void FldEff_PhotoFlash(void);
++#endif // PORTABLE
++
+ #endif //GUARD_FIELD_EFFECTS_H
+diff --git a/include/gba/defines.h b/include/gba/defines.h
+index 5521e94..8dd7cf4 100644
+--- a/include/gba/defines.h
++++ b/include/gba/defines.h
+@@ -6,6 +6,21 @@
+ #define TRUE  1
+ #define FALSE 0
+ 
++#if defined(PORTABLE) && defined(PN_MIRROR_SECTIONS)
++// fireredsim (mirror layout, docs/MIRROR_LAYOUT.md): every RAM variable is put
++// at its ROM address by a generated linker script (tools/mirror/gen_ld.py), so
++// each one needs an input section of its own. -fdata-sections does not split
++// variables with an explicit section attribute; __COUNTER__ makes the names
++// unique within the file (game/native/mirror_sections.py then renames them to
++// .mirror.<ewram|iwram>.<object>.<variable>). Only the section names change:
++// the layout audit (tools/layout_audit) reads CPPFLAGS without
++// PN_MIRROR_SECTIONS and measures the classic sections.
++#define PN_SECTION_STR2(x) #x
++#define PN_SECTION_STR(x) PN_SECTION_STR2(x)
++#define IWRAM_DATA __attribute__((section("iwram_data." PN_SECTION_STR(__COUNTER__))))
++#define EWRAM_DATA __attribute__((section("ewram_data." PN_SECTION_STR(__COUNTER__))))
++#define COMMON_DATA __attribute__((section("common_data." PN_SECTION_STR(__COUNTER__))))
++#else
+ #if defined(__APPLE__)
+ #define IWRAM_DATA __attribute__((section("__DATA,iwram_data")))
+ #define EWRAM_DATA __attribute__((section("__DATA,ewram_data")))
+@@ -14,6 +29,7 @@
+ #define EWRAM_DATA __attribute__((section("ewram_data")))
+ #endif
+ #define COMMON_DATA __attribute__((section("common_data")))
++#endif
+ 
+ #if MODERN
+ #define NOINLINE __attribute__((noinline))
+@@ -23,6 +39,17 @@
+ 
+ #define ALIGNED(n) __attribute__((aligned(n)))
+ 
++#ifdef PORTABLE
++// fireredsim: agbcc (no PCC_BITFIELD_TYPE_MATTERS) places a bit-field at the
++// next free bit even if it straddles a unit of its declared type; i386 GCC
++// moves it to the next unit. Marking the bit-fields packed reproduces the ROM
++// layout (reference/layout_report.md, configuration fixB). Only the four
++// types whose layout differs carry it.
++#define BITFIELD_PACKED __attribute__((packed))
++#else
++#define BITFIELD_PACKED
++#endif
++
+ #define SOUND_INFO_PTR (*(struct SoundInfo **)0x3007FF0)
+ #define INTR_CHECK     (*(u16 *)0x3007FF8)
+ #define INTR_VECTOR    (*(void **)0x3007FFC)
+diff --git a/include/gba/flash_internal.h b/include/gba/flash_internal.h
+index 39e14ef..4a60b5b 100644
+--- a/include/gba/flash_internal.h
++++ b/include/gba/flash_internal.h
+@@ -1,9 +1,30 @@
+ #ifndef GUARD_GBA_FLASH_INTERNAL_H
+ #define GUARD_GBA_FLASH_INTERNAL_H
+ 
++#ifndef PORTABLE
+ #define FLASH_BASE ((u8 *)0xE000000)
+-
++#else
++// fireredsim: the whole 128 KB flash chip is plain memory at 0x0E000000
++// (platform/flash.c, mirror layout): bank 0 at 0x0E000000, bank 1 at
++// 0x0E010000. The GBA maps one 64 KB bank at a time at 0x0E000000;
++// gPortFlashBank is the bank selected by the last SwitchFlashBank().
++extern unsigned char gPortFlashBank;
++#define FLASH_BASE ((u8 *)0xE000000 + ((u32)gPortFlashBank << 16))
++// Flash chip commands are executed by platform/flash.c (see the PORTABLE
++// sections of agb_flash*.c); these replace the chip's command interface.
++u16 Port_FlashReadId(void);
++void Port_FlashEraseChip(void);
++void Port_FlashEraseSector(u8 *sectorAddr);
++void Port_FlashProgramByte(u8 *addr, u8 data);
++#endif
++
++#ifndef PORTABLE
+ #define FLASH_WRITE(addr, data) ((*(vu8 *)(FLASH_BASE + (addr))) = (data))
++#else
++// fireredsim: command writes go to the flash chip model (bank switch, reset).
++void Port_FlashCommand(u32 addr, u8 data);
++#define FLASH_WRITE(addr, data) Port_FlashCommand((addr), (data))
++#endif
+ 
+ #define FLASH_ROM_SIZE_1M 131072 // 1 megabit ROM
+ 
+diff --git a/include/gba/m4a_internal.h b/include/gba/m4a_internal.h
+index 609259b..024ac57 100644
+--- a/include/gba/m4a_internal.h
++++ b/include/gba/m4a_internal.h
+@@ -403,11 +403,18 @@ extern const struct PokemonCrySong gPokemonCrySongTemplate;
+ 
+ extern const struct ToneData voicegroup000;
+ 
++#ifndef PORTABLE
+ extern char gNumMusicPlayers[];
+ extern char gMaxLines[];
+ 
+ #define NUM_MUSIC_PLAYERS ((u16)gNumMusicPlayers)
+ #define MAX_LINES ((u32)gMaxLines)
++#else
++// fireredsim: these are linker-script constants in the ROM build
++// (ld_script*.ld: gNumMusicPlayers = 4; gMaxLines = 0;).
++#define NUM_MUSIC_PLAYERS ((u16)4)
++#define MAX_LINES ((u32)0)
++#endif
+ 
+ u32 umul3232H32(u32 multiplier, u32 multiplicand);
+ void SoundMain(void);
+diff --git a/include/gba/macro.h b/include/gba/macro.h
+index cc85353..920aa09 100644
+--- a/include/gba/macro.h
++++ b/include/gba/macro.h
+@@ -31,6 +31,7 @@
+ 
+ #define CpuFastCopy(src, dest, size) CpuFastSet(src, dest, ((size)/(32/8) & 0x1FFFFF))
+ 
++#ifndef PORTABLE
+ #define DmaSet(dmaNum, src, dest, control)        \
+ {                                                 \
+     vu32 *dmaRegs = (vu32 *)REG_ADDR_DMA##dmaNum; \
+@@ -39,6 +40,13 @@
+     dmaRegs[2] = (vu32)(control);                 \
+     dmaRegs[2];                                   \
+ }
++#else
++// fireredsim: writing the DMA registers has to start the transfer, which plain
++// memory cannot do. platform/dma.c writes the same three registers and then
++// performs/schedules the transfer exactly like the DMA controller.
++void Port_DmaSet(u32 dmaNum, u32 src, u32 dest, u32 control);
++#define DmaSet(dmaNum, src, dest, control) Port_DmaSet((dmaNum), (u32)(src), (u32)(dest), (u32)(control))
++#endif
+ 
+ #define DMA_FILL(dmaNum, value, dest, size, bit)                                              \
+ {                                                                                             \
+diff --git a/include/global.h b/include/global.h
+index 77155b0..73d7b37 100644
+--- a/include/global.h
++++ b/include/global.h
+@@ -710,6 +710,10 @@ struct TrainerNameRecord
+     u8 trainerName[PLAYER_NAME_LENGTH + 1];
+ };
+ 
++#ifdef PORTABLE // packed: exempt from the ARM struct-size rule (gba/portable_abi.h)
++#pragma push_macro("struct")
++#undef struct
++#endif
+ // For external event data storage. The majority of these may have never been used.
+ // In FRLG, the only known used fields are the PokeCoupon and BoxRS ones, but hacking the distribution discs allows FRLG to receive events and set the others
+ struct ExternalEventData
+@@ -755,6 +759,9 @@ struct ExternalEventFlags
+     u8 unknownFlag20;
+ 
+ } __attribute__((packed));/*size = 0x15*/
++#ifdef PORTABLE
++#pragma pop_macro("struct")
++#endif
+ 
+ struct SaveBlock1
+ {
+diff --git a/include/main.h b/include/main.h
+index 31b22a3..b6b74ed 100644
+--- a/include/main.h
++++ b/include/main.h
+@@ -52,6 +52,11 @@ extern const u8 gGameVersion;
+ extern const u8 gGameLanguage;
+ 
+ void AgbMain(void);
++#ifdef PORTABLE
++void AgbMain_Init(void);
++void AgbMain_RunFrame(void);
++void Port_ClearIwramVariables(void);
++#endif
+ void SetMainCallback2(MainCallback callback);
+ void InitKeys(void);
+ void SetVBlankCallback(IntrCallback callback);
+diff --git a/include/palette.h b/include/palette.h
+index 3bde46c..30cd936 100644
+--- a/include/palette.h
++++ b/include/palette.h
+@@ -37,21 +37,21 @@ enum
+ struct PaletteFadeControl
+ {
+     u32 multipurpose1;
+-    u8 delayCounter:6;
+-    u16 y:5; // blend coefficient
+-    u16 targetY:5; // target blend coefficient
+-    u16 blendColor:15;
+-    u16 active:1;
+-    u16 multipurpose2:6;
+-    u16 yDec:1; // whether blend coefficient is decreasing
+-    u16 bufferTransferDisabled:1;
+-    u16 mode:2;
+-    u16 shouldResetBlendRegisters:1;
+-    u16 hardwareFadeFinishing:1;
+-    u16 softwareFadeFinishingCounter:5;
+-    u16 softwareFadeFinishing:1;
+-    u16 objPaletteToggle:1;
+-    u8 deltaY:4; // rate of change of blend coefficient
++    u8 delayCounter:6 BITFIELD_PACKED;
++    u16 y:5 BITFIELD_PACKED; // blend coefficient
++    u16 targetY:5 BITFIELD_PACKED; // target blend coefficient
++    u16 blendColor:15 BITFIELD_PACKED;
++    u16 active:1 BITFIELD_PACKED;
++    u16 multipurpose2:6 BITFIELD_PACKED;
++    u16 yDec:1 BITFIELD_PACKED; // whether blend coefficient is decreasing
++    u16 bufferTransferDisabled:1 BITFIELD_PACKED;
++    u16 mode:2 BITFIELD_PACKED;
++    u16 shouldResetBlendRegisters:1 BITFIELD_PACKED;
++    u16 hardwareFadeFinishing:1 BITFIELD_PACKED;
++    u16 softwareFadeFinishingCounter:5 BITFIELD_PACKED;
++    u16 softwareFadeFinishing:1 BITFIELD_PACKED;
++    u16 objPaletteToggle:1 BITFIELD_PACKED;
++    u8 deltaY:4 BITFIELD_PACKED; // rate of change of blend coefficient
+     u32 unused;
+ };
+ 
+diff --git a/include/pokemon.h b/include/pokemon.h
+index 414dc41..3afaab1 100644
+--- a/include/pokemon.h
++++ b/include/pokemon.h
+@@ -257,11 +257,18 @@ struct SpindaSpot
+     u16 image[SPINDA_SPOT_HEIGHT];
+ };
+ 
++#ifdef PORTABLE // packed: exempt from the ARM struct-size rule (gba/portable_abi.h)
++#pragma push_macro("struct")
++#undef struct
++#endif
+ struct __attribute__((packed)) LevelUpMove
+ {
+     u16 move:9;
+     u16 level:7;
+ };
++#ifdef PORTABLE
++#pragma pop_macro("struct")
++#endif
+ 
+ struct Evolution
+ {
+diff --git a/include/text.h b/include/text.h
+index 7090a02..6dc3184 100644
+--- a/include/text.h
++++ b/include/text.h
+@@ -95,7 +95,14 @@ struct TextPrinter
+ {
+     struct TextPrinterTemplate printerTemplate;
+     void (*callback)(struct TextPrinterTemplate *, u16); // 0x10
++#ifdef PORTABLE // packed: exempt from the ARM struct-size rule (gba/portable_abi.h)
++#pragma push_macro("union")
++#undef union
++#endif
+     union __attribute__((packed)) {
++#ifdef PORTABLE
++#pragma pop_macro("union")
++#endif
+         struct TextPrinterSubStruct sub;
+         u8 fields[7];
+     } subUnion;
+diff --git a/src/agb_flash.c b/src/agb_flash.c
+index 08aeed1..a60d7c4 100644
+--- a/src/agb_flash.c
++++ b/src/agb_flash.c
+@@ -36,6 +36,15 @@ do {                             \
+ 
+ u16 ReadFlashId(void)
+ {
++#ifdef PORTABLE
++    // The chip's ID mode (enter with AA/55/90, read two bytes through a
++    // RAM-resident routine, leave with AA/55/F0) is answered by the flash
++    // model (platform/flash.c). SetReadFlash1 still runs for its effect on
++    // PollFlashStatus; the busy-wait DELAY() loops take no game-visible time.
++    u16 readFlash1Buffer[0x20];
++    SetReadFlash1(readFlash1Buffer);
++    return Port_FlashReadId();
++#else
+     u16 flashId;
+     u16 readFlash1Buffer[0x20];
+     u8 (*readFlash1)(u8 *);
+@@ -60,6 +69,7 @@ u16 ReadFlashId(void)
+     DELAY();
+ 
+     return flashId;
++#endif // PORTABLE
+ }
+ 
+ void FlashTimerIntr(void)
+@@ -110,6 +120,12 @@ u8 ReadFlash1(u8 *addr)
+ 
+ void SetReadFlash1(u16 *dest)
+ {
++#ifdef PORTABLE
++    // The ROM copies ReadFlash1's machine code into a stack buffer and calls it
++    // there (flash cannot be read while code runs from the cartridge). Native
++    // code is not copied; ReadFlash1 is called directly.
++    PollFlashStatus = ReadFlash1;
++#else
+     u16 *src;
+     u16 i;
+ 
+@@ -125,6 +141,7 @@ void SetReadFlash1(u16 *dest)
+         *dest++ = *src++;
+         i--;
+     }
++#endif // PORTABLE
+ }
+ 
+ 
+@@ -154,6 +171,10 @@ void ReadFlash(u16 sectorNum, u32 offset, void *dest, u32 size)
+         sectorNum %= SECTORS_PER_BANK;
+     }
+ 
++#ifdef PORTABLE
++    // No machine-code copy to the stack (see SetReadFlash1).
++    readFlash_Core = ReadFlash_Core;
++#else
+     funcSrc = (vu16 *)ReadFlash_Core;
+     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
+     funcDest = readFlash_Core_Buffer;
+@@ -167,6 +188,7 @@ void ReadFlash(u16 sectorNum, u32 offset, void *dest, u32 size)
+     }
+ 
+     readFlash_Core = (void (*)(vu8 *, u8 *, u32))((s32)readFlash_Core_Buffer + 1);
++#endif
+ 
+     src = FLASH_BASE + (sectorNum << gFlash->sector.shift) + offset;
+ 
+@@ -202,6 +224,10 @@ u32 VerifyFlashSector(u16 sectorNum, u8 *src)
+         sectorNum %= SECTORS_PER_BANK;
+     }
+ 
++#ifdef PORTABLE
++    // No machine-code copy to the stack (see SetReadFlash1).
++    verifyFlashSector_Core = VerifyFlashSector_Core;
++#else
+     funcSrc = (vu16 *)VerifyFlashSector_Core;
+     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
+     funcDest = verifyFlashSector_Core_Buffer;
+@@ -215,6 +241,7 @@ u32 VerifyFlashSector(u16 sectorNum, u8 *src)
+     }
+ 
+     verifyFlashSector_Core = (u32 (*)(u8 *, u8 *, u32))((s32)verifyFlashSector_Core_Buffer + 1);
++#endif
+ 
+     tgt = FLASH_BASE + (sectorNum << gFlash->sector.shift);
+     size = gFlash->sector.size;
+@@ -239,6 +266,10 @@ u32 VerifyFlashSectorNBytes(u16 sectorNum, u8 *src, u32 n)
+ 
+     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | WAITCNT_SRAM_8;
+ 
++#ifdef PORTABLE
++    // No machine-code copy to the stack (see SetReadFlash1).
++    verifyFlashSector_Core = VerifyFlashSector_Core;
++#else
+     funcSrc = (vu16 *)VerifyFlashSector_Core;
+     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
+     funcDest = verifyFlashSector_Core_Buffer;
+@@ -252,6 +283,7 @@ u32 VerifyFlashSectorNBytes(u16 sectorNum, u8 *src, u32 n)
+     }
+ 
+     verifyFlashSector_Core = (u32 (*)(u8 *, u8 *, u32))((s32)verifyFlashSector_Core_Buffer + 1);
++#endif
+ 
+     tgt = FLASH_BASE + (sectorNum << gFlash->sector.shift);
+ 
+diff --git a/src/agb_flash_mx.c b/src/agb_flash_mx.c
+index b4f710f..2388593 100644
+--- a/src/agb_flash_mx.c
++++ b/src/agb_flash_mx.c
+@@ -62,12 +62,18 @@ u16 EraseFlashChip_MX(void)
+ 
+     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | gFlash->wait[0];
+ 
++#ifdef PORTABLE
++    // Chip erase command sequence; the flash model erases instantly and the
++    // status polling below then succeeds at once.
++    Port_FlashEraseChip();
++#else
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     FLASH_WRITE(0x5555, 0x80);
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     FLASH_WRITE(0x5555, 0x10);
++#endif
+ 
+     SetReadFlash1(readFlash1Buffer);
+ 
+@@ -98,12 +104,17 @@ try_erase:
+ 
+     addr = FLASH_BASE + (sectorNum << gFlash->sector.shift);
+ 
++#ifdef PORTABLE
++    // Sector erase command sequence (last write: 0x30 to the sector address).
++    Port_FlashEraseSector(addr);
++#else
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     FLASH_WRITE(0x5555, 0x80);
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     *addr = 0x30;
++#endif
+ 
+     SetReadFlash1(readFlash1Buffer);
+ 
+@@ -139,20 +150,29 @@ u16 ProgramFlashByte_MX(u16 sectorNum, u32 offset, u8 data)
+ 
+     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | gFlash->wait[0];
+ 
++#ifdef PORTABLE
++    // Byte program command sequence (the chip can only clear bits).
++    Port_FlashProgramByte(addr, data);
++#else
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     FLASH_WRITE(0x5555, 0xA0);
+     *addr = data;
++#endif
+ 
+     return WaitForFlashWrite(1, addr, data);
+ }
+ 
+ static u16 ProgramByte(u8 *src, u8 *dest)
+ {
++#ifdef PORTABLE
++    Port_FlashProgramByte(dest, *src);
++#else
+     FLASH_WRITE(0x5555, 0xAA);
+     FLASH_WRITE(0x2AAA, 0x55);
+     FLASH_WRITE(0x5555, 0xA0);
+     *dest = *src;
++#endif
+ 
+     return WaitForFlashWrite(1, dest, *src);
+ }
+diff --git a/src/battle_ai_script_commands.c b/src/battle_ai_script_commands.c
+index 4df9977..d627050 100644
+--- a/src/battle_ai_script_commands.c
++++ b/src/battle_ai_script_commands.c
+@@ -1364,7 +1364,12 @@ static void Cmd_if_status_not_in_party(void)
+         if (species != SPECIES_NONE && species != SPECIES_EGG && hp != 0 && status == statusToCompareTo)
+         {
+             sAIScriptPtr += 10; // doesnt return?
+-            #ifdef UBFIX
++            #if defined(PORTABLE)
++            // Retail goes on with a misaligned AI script pointer (garbage
++            // script). Only reachable with status1 == STATUS1_ANY, which no
++            // real Pokemon has: fail loudly instead of guessing.
++            Port_Fatal("AI if_status_in_party matched: retail continues with a misaligned script pointer");
++            #elif defined(UBFIX)
+             return;
+             #endif
+         }
+diff --git a/src/battle_controller_player.c b/src/battle_controller_player.c
+index d8e1fe7..2c7888d 100644
+--- a/src/battle_controller_player.c
++++ b/src/battle_controller_player.c
+@@ -320,9 +320,25 @@ static void EndBounceEffect2(void)
+ static void HandleInputChooseTarget(void)
+ {
+     s32 i;
++#ifdef PORTABLE
++    // The LEFT/UP loop below reads identities[4] (out of range: "UB" in the loop).
++    // In the ROM's frame (push {r4, r5, lr}; sub sp, #4; identities at sp) that
++    // byte is the low byte of the caller's saved r4, and the only caller,
++    // BattleMainCB1, keeps &gActiveBattler in r4 while it calls the controller
++    // functions: 0xC4 (gActiveBattler is at 0x02023BC4 on the GBA and, in the
++    // mirror layout, natively). GetBattlerAtPosition(0xC4) finds no battler, so
++    // the retail loop moves on to identities[3]. Natively the out-of-range read
++    // made the body spin forever (environment ended HUNG; found by the coverage
++    // runs, docs/COVERAGE.md).
++    u8 identities[5];
++
++    memcpy(identities, sTargetIdentities, NELEMS(sTargetIdentities));
++    identities[4] = (u8)(u32)&gActiveBattler;
++#else
+     u8 identities[4];
+ 
+     memcpy(identities, sTargetIdentities, NELEMS(sTargetIdentities));
++#endif
+     DoBounceEffect(gMultiUsePlayerCursor, BOUNCE_HEALTHBOX, 15, 1);
+     i = 0;
+     if (gBattlersCount != 0)
+diff --git a/src/battle_script_commands.c b/src/battle_script_commands.c
+index 67f90a3..5dbf64f 100644
+--- a/src/battle_script_commands.c
++++ b/src/battle_script_commands.c
+@@ -5317,6 +5317,16 @@ static void Cmd_hitanimation(void)
+     }
+ }
+ 
++#ifdef PORTABLE
++// A trainer battle against TRAINER_LINK_OPPONENT outside a link (src/data/trainers.h) has partySize
++// 0 and party NULL, so the last mon's level is read at NULL - 8 + 2 = 0xFFFFFFFA (unmapped): the
++// CPU open bus, the Thumb opcode after the next one (0x00B1 at 0x08025972; the ROM's single
++// `ldrb r5, [r0, #2]` at 0x0802596E serves all four cases). Real parties are read normally
++// (game/NATIVE_CHANGES.md).
++#define RETAIL_LAST_MON_LEVEL(party) \
++    ((u8)Port_LoadWithOpenBus(&(party)[gTrainers[gTrainerBattleOpponent_A].partySize - 1].lvl, 1, 0x00B1))
++#endif
++
+ static void Cmd_getmoneyreward(void)
+ {
+     u32 i = 0;
+@@ -5339,28 +5349,44 @@ static void Cmd_getmoneyreward(void)
+                 {
+                     const struct TrainerMonNoItemDefaultMoves *party1 = gTrainers[gTrainerBattleOpponent_A].party.NoItemDefaultMoves;
+                     
++#ifdef PORTABLE
++                    lastMonLevel = RETAIL_LAST_MON_LEVEL(party1);
++#else
+                     lastMonLevel = party1[gTrainers[gTrainerBattleOpponent_A].partySize - 1].lvl;
++#endif
+                 }
+                 break;
+             case F_TRAINER_PARTY_CUSTOM_MOVESET:
+                 {
+                     const struct TrainerMonNoItemCustomMoves *party2 = gTrainers[gTrainerBattleOpponent_A].party.NoItemCustomMoves;
+                     
++#ifdef PORTABLE
++                    lastMonLevel = RETAIL_LAST_MON_LEVEL(party2);
++#else
+                     lastMonLevel = party2[gTrainers[gTrainerBattleOpponent_A].partySize - 1].lvl;
++#endif
+                 }
+                 break;
+             case F_TRAINER_PARTY_HELD_ITEM:
+                 {
+                     const struct TrainerMonItemDefaultMoves *party3 = gTrainers[gTrainerBattleOpponent_A].party.ItemDefaultMoves;
+                     
++#ifdef PORTABLE
++                    lastMonLevel = RETAIL_LAST_MON_LEVEL(party3);
++#else
+                     lastMonLevel = party3[gTrainers[gTrainerBattleOpponent_A].partySize - 1].lvl;
++#endif
+                 }
+                 break;
+             case (F_TRAINER_PARTY_CUSTOM_MOVESET | F_TRAINER_PARTY_HELD_ITEM):
+                 {
+                     party4 = gTrainers[gTrainerBattleOpponent_A].party.ItemCustomMoves;
+                     
++#ifdef PORTABLE
++                    lastMonLevel = RETAIL_LAST_MON_LEVEL(party4);
++#else
+                     lastMonLevel = party4[gTrainers[gTrainerBattleOpponent_A].partySize - 1].lvl;
++#endif
+                 }
+                 break;
+             }
+diff --git a/src/battle_transition.c b/src/battle_transition.c
+index 8a23dfe..38a34e4 100644
+--- a/src/battle_transition.c
++++ b/src/battle_transition.c
+@@ -1230,13 +1230,17 @@ static bool8 ClockwiseWipe_Init(struct Task *task)
+ static bool8 ClockwiseWipe_TopRight(struct Task *task)
+ {
+     sTransitionData->vblankDma = FALSE;
+-#ifdef UBFIX
++#if defined(UBFIX) && !defined(PORTABLE)
+     InitBlackWipe(sTransitionData->data, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, sTransitionData->tWipeEndX, 0, 1, 1);
+ #else
+     InitBlackWipe(sTransitionData->data, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, sTransitionData->tWipeEndX, -1, 1, 1);
+ #endif
+     do
+     {
++        // PORTABLE: retail (endY = -1) stores to gScanlineEffectRegBuffers[0][-1],
++        // the high half of gFieldEffectArguments[7] (0x020386FE; the buffer is
++        // at 0x02038700). The mirror layout puts both at their ROM addresses,
++        // so the native store hits the same halfword.
+         gScanlineEffectRegBuffers[0][sTransitionData->tWipeCurrY] = WIN_RANGE(DISPLAY_WIDTH / 2, sTransitionData->tWipeCurrX + 1);
+     }
+     while (!UpdateBlackWipe(sTransitionData->data, TRUE, TRUE));
+diff --git a/src/bg.c b/src/bg.c
+index aa11ae0..f0e56e2 100644
+--- a/src/bg.c
++++ b/src/bg.c
+@@ -39,9 +39,16 @@ struct BgConfig2
+ };
+ 
+ static struct BgControl sGpuBgConfigs;
+-static struct BgConfig2 sGpuBgConfigs2[4];
+-static u32 sDmaBusyBitfield[4];
+-static u8 gpu_tile_allocation_map_bg[0x100];
++#ifdef PORTABLE
++// agbcc emits this uninitialised static as .lcomm, which GNU as aligns by size
++// (8 for objects of 8 bytes or more); keeps the ROM's relative RAM placement.
++#define LCOMM_ALIGN __attribute__((aligned(8)))
++#else
++#define LCOMM_ALIGN
++#endif
++static struct BgConfig2 sGpuBgConfigs2[4] LCOMM_ALIGN;
++static u32 sDmaBusyBitfield[4] LCOMM_ALIGN;
++static u8 gpu_tile_allocation_map_bg[0x100] LCOMM_ALIGN;
+ 
+ COMMON_DATA bool32 gWindowTileAutoAllocEnabled = 0;
+ 
+@@ -490,7 +497,33 @@ u16 Unused_LoadBgPalette(u8 bg, const void *src, u16 size, u16 destOffset)
+     return (u8)cursor;
+ }
+ 
++#ifdef PORTABLE
++static bool8 IsDma3ManagerBusyWithBgCopy_Retail(void);
++
++// The DMA3 queue is drained only by VBlankIntr (ProcessDma3Requests). Blocking
++// loops that run a whole setup state machine inside one frame body
++// (CB2_OpenBagMenu, CB2_InitPartyMenu, CB2_SetUpTMCaseUI_Blocking,
++// CB2_InitBerryPouch, ItemPc_RunSetup, the credits' map scenes, ...) spin on
++// this predicate until the VBlank interrupt fires inside the body on
++// hardware. Port_SpinPoll detects the spin and delivers that interrupt
++// (docs/ROBUSTNESS.md, "nested waits"); a "busy" answer has no side effect
++// other than clearing the busy bits of finished requests, which repeated calls
++// redo identically.
+ bool8 IsDma3ManagerBusyWithBgCopy(void)
++{
++    for (;;)
++    {
++        if (!IsDma3ManagerBusyWithBgCopy_Retail())
++            return FALSE;
++        if (!Port_SpinPoll(__builtin_return_address(0)))
++            return TRUE;
++    }
++}
++
++static bool8 IsDma3ManagerBusyWithBgCopy_Retail(void)
++#else
++bool8 IsDma3ManagerBusyWithBgCopy(void)
++#endif
+ {
+     int i;
+ 
+@@ -1207,8 +1240,17 @@ bool32 IsInvalidBg32(u8 bg)
+ 
+ bool32 IsTileMapOutsideWram(u8 bg)
+ {
++#ifdef PORTABLE
++    // EWRAM/IWRAM are at their GBA addresses natively (mirror layout), so the
++    // retail test applies unchanged, except that game code runs on a stack in
++    // native-only memory (.pnstate, platform/frame.c): a tilemap on that stack
++    // is in IWRAM, as the GBA's stack is.
++    if (sGpuBgConfigs2[bg].tilemap > (void *)IWRAM_END && !Port_IsOnGameStack(sGpuBgConfigs2[bg].tilemap))
++        return TRUE;
++#else
+     if (sGpuBgConfigs2[bg].tilemap > (void *)IWRAM_END)
+         return TRUE;
++#endif
+     if (sGpuBgConfigs2[bg].tilemap == 0x0)
+         return TRUE;
+     return FALSE;
+diff --git a/src/data/trainers.h b/src/data/trainers.h
+index 02afbfd..f20add9 100644
+--- a/src/data/trainers.h
++++ b/src/data/trainers.h
+@@ -7422,4 +7422,16 @@ const struct Trainer gTrainers[] = {
+         .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE,
+         .party = NO_ITEM_DEFAULT_MOVES(sParty_CueBallPaxton),
+     },
++#ifdef PORTABLE
++    // Retail out-of-range reads of gTrainers[TRAINER_LINK_OPPONENT] (game/NATIVE_CHANGES.md):
++    // Task_StartWiredCableClubBattle with gSpecialVar_0x8004 not one of USING_*_BATTLE leaves
++    // gBattleTypeFlags as it was (no BATTLE_TYPE_LINK) and starts a trainer battle against
++    // TRAINER_LINK_OPPONENT (0x800). The ROM then reads the 40 bytes at gTrainers + 0x800 * 40 =
++    // 0x08252AC8 (inside gItemEffectTable: all zero), and the opponent's name (at +4) runs on
++    // past the entry: 129 zero bytes, then sNatureStatTable's 0x01 and the EOS at 0x08252B4E. The
++    // native array holds exactly those bytes at the same offsets; entries 743..0x802 are zero and
++    // no game code reads them, nor any index above 0x803 except TRAINER_UNION_ROOM (link only).
++    [TRAINER_LINK_OPPONENT] = {0},
++    [TRAINER_LINK_OPPONENT + 3] = { .trainerName = { [9] = 0x01, [10] = EOS } },
++#endif
+ };
+diff --git a/src/easy_chat.c b/src/easy_chat.c
+index 4a08a1a..fe02fce 100644
+--- a/src/easy_chat.c
++++ b/src/easy_chat.c
+@@ -459,7 +459,13 @@ void InitEasyChatPhrases(void)
+             gSaveBlock1Ptr->mail[i].words[j] = EC_WORD_UNDEFINED;
+     }
+ 
+-#ifndef UBFIX
++#if defined(PORTABLE)
++    // Retail behavior (the UBFIX branch below differs): clear 64 bytes from
++    // additionalPhrases, i.e. 56 bytes past it, all inside SaveBlock1 (same
++    // layout as the ROM). Byte addressing from the save block keeps it defined C.
++    for (i = 0; i < 64; i++)
++        ((u8 *)gSaveBlock1Ptr)[offsetof(struct SaveBlock1, additionalPhrases) + i] = 0;
++#elif !defined(UBFIX)
+     // BUG: This is supposed to clear 64 bits, but this loop is clearing 64 bytes.
+     // However, this bug has no resulting effect on gameplay because only the
+     // Mauville old man data is corrupted, which is initialized directly after
+diff --git a/src/event_object_movement.c b/src/event_object_movement.c
+index 8e82824..1b8964c 100644
+--- a/src/event_object_movement.c
++++ b/src/event_object_movement.c
+@@ -2519,7 +2519,12 @@ const u8 *GetObjectEventScriptPointerByObjectEventId(u8 objectEventId)
+ static u16 GetObjectEventFlagIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup)
+ {
+     const struct ObjectEventTemplate *obj = GetObjectEventTemplateByLocalIdAndMap(localId, mapNum, mapGroup);
+-#ifdef UBFIX
++#ifdef PORTABLE
++    // Retail reads flagId through NULL, i.e. from the BIOS area, which returns
++    // the BIOS open-bus value; emulated instead of the UBFIX fallback (0).
++    if (obj == NULL)
++        return Port_BiosOpenBus16(offsetof(struct ObjectEventTemplate, flagId));
++#elif defined(UBFIX)
+     // BUG: The function may return NULL, and attempting to read from NULL may freeze the game using modern compilers.
+     if (obj == NULL)
+         return 0;
+diff --git a/src/field_control_avatar.c b/src/field_control_avatar.c
+index b1b6465..71ee369 100644
+--- a/src/field_control_avatar.c
++++ b/src/field_control_avatar.c
+@@ -386,10 +386,24 @@ static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatil
+ static const u8 *GetInteractionScript(struct MapPosition *position, u8 metatileBehavior, u8 direction)
+ {
+     const u8 *script = GetInteractedObjectEventScript(position, metatileBehavior, direction);
++#ifdef PORTABLE
++    // Observation hook (game/NATIVE_CHANGES.md): reads only, stores into a host-side latch.
++    if (script != NULL && !QL_IS_PLAYBACK_STATE)
++        PORT_NOTE_INTERACTION(PORT_INTERACT_OBJECT, gObjectEvents[gSelectedObjectEvent].mapGroup,
++                              gObjectEvents[gSelectedObjectEvent].mapNum, gObjectEvents[gSelectedObjectEvent].localId,
++                              gObjectEvents[gSelectedObjectEvent].currentCoords.x,
++                              gObjectEvents[gSelectedObjectEvent].currentCoords.y);
++#endif
+     if (script != NULL)
+         return script;
+ 
+     script = GetInteractedBackgroundEventScript(position, metatileBehavior, direction);
++#ifdef PORTABLE
++    if (script != NULL && !QL_IS_PLAYBACK_STATE)
++        PORT_NOTE_INTERACTION(script == EventScript_HiddenItemScript ? PORT_INTERACT_HIDDEN_ITEM : PORT_INTERACT_SIGN,
++                              gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, 0,
++                              position->x, position->y);
++#endif
+     if (script != NULL)
+         return script;
+ 
+@@ -780,6 +794,12 @@ static bool8 TrySetUpWalkIntoSignpostScript(struct MapPosition * position, u16 m
+         if (signpostType != SIGNPOST_SCRIPTED)
+             return FALSE;
+         SetUpWalkIntoSignScript(script, playerDirection);
++#ifdef PORTABLE
++        // Observation hook (game/NATIVE_CHANGES.md): reads only, stores into a host-side latch.
++        if (!QL_IS_PLAYBACK_STATE)
++            PORT_NOTE_INTERACTION(PORT_INTERACT_SIGN_WALK, gSaveBlock1Ptr->location.mapGroup,
++                                  gSaveBlock1Ptr->location.mapNum, 0, position->x, position->y);
++#endif
+         return TRUE;
+     }
+ }
+diff --git a/src/field_effect.c b/src/field_effect.c
+index 1707cbd..92dd00c 100644
+--- a/src/field_effect.c
++++ b/src/field_effect.c
+@@ -478,10 +478,84 @@ static void FieldEffectScript_LoadPal(const u8 **script)
+     *script += sizeof(u32);
+ }
+ 
++#ifdef PORTABLE
++// The script's function is called through u32 (*)(void) and its result is
++// FieldEffectStart's return value. 21 of these functions return u8/bool8, whose
++// value agbcc's callee extends to all of r0 (GCC/i386: only AL is defined), and
++// FldEff_PhotoFlash returns nothing. Call each through its declared type
++// (field_effect.h, gba/portable_abi.h; game/NATIVE_CHANGES.md, ABI).
++static const struct PortNativeFunc sFieldEffectNatives[] = {
++    PORT_NATIVE_FUNC(FldEff_ExclamationMarkIcon1),
++    PORT_NATIVE_FUNC(FldEff_UseCutOnGrass),
++    PORT_NATIVE_FUNC(FldEff_UseCutOnTree),
++    PORT_NATIVE_FUNC(FldEff_Shadow),
++    PORT_NATIVE_FUNC(FldEff_TallGrass),
++    PORT_NATIVE_FUNC(FldEff_Ripple),
++    PORT_NATIVE_FUNC(FldEff_FieldMoveShowMon),
++    PORT_NATIVE_FUNC(FldEff_Ash),
++    PORT_NATIVE_FUNC(FldEff_SurfBlob),
++    PORT_NATIVE_FUNC(FldEff_UseSurf),
++    PORT_NATIVE_FUNC(FldEff_Dust),
++    PORT_NATIVE_FUNC(FldEff_JumpTallGrass),
++    PORT_NATIVE_FUNC(FldEff_SandFootprints),
++    PORT_NATIVE_FUNC(FldEff_JumpBigSplash),
++    PORT_NATIVE_FUNC(FldEff_Splash),
++    PORT_NATIVE_FUNC(FldEff_JumpSmallSplash),
++    PORT_NATIVE_FUNC(FldEff_LongGrass),
++    PORT_NATIVE_FUNC(FldEff_JumpLongGrass),
++    PORT_NATIVE_FUNC(FldEff_UnusedGrass),
++    PORT_NATIVE_FUNC(FldEff_UnusedGrass2),
++    PORT_NATIVE_FUNC(FldEff_UnusedSand),
++    PORT_NATIVE_FUNC(FldEff_UnusedWaterSurfacing),
++    PORT_NATIVE_FUNC(FldEff_BerryTreeGrowthSparkle),
++    PORT_NATIVE_FUNC(FldEff_DeepSandFootprints),
++    PORT_NATIVE_FUNC(FldEff_PokecenterHeal),
++    PORT_NATIVE_FUNC(ShowTreeDisguiseFieldEffect),
++    PORT_NATIVE_FUNC(ShowMountainDisguiseFieldEffect),
++    PORT_NATIVE_FUNC(FldEff_NpcFlyOut),
++    PORT_NATIVE_FUNC(FldEff_FlyOut),
++    PORT_NATIVE_FUNC(FldEff_FlyIn),
++    PORT_NATIVE_FUNC(FldEff_QuestionMarkIcon),
++    PORT_NATIVE_FUNC(FldEff_FeetInFlowingWater),
++    PORT_NATIVE_FUNC(FldEff_BikeTireTracks),
++    PORT_NATIVE_FUNC(ShowSandDisguiseFieldEffect),
++    PORT_NATIVE_FUNC(FldEff_UseRockSmash),
++    PORT_NATIVE_FUNC(FldEff_UseStrength),
++    PORT_NATIVE_FUNC(FldEff_UseDig),
++    PORT_NATIVE_FUNC(FldEff_SandPile),
++    PORT_NATIVE_FUNC(FldEff_ShortGrass),
++    PORT_NATIVE_FUNC(FldEff_HotSpringsWater),
++    PORT_NATIVE_FUNC(FldEff_UseWaterfall),
++    PORT_NATIVE_FUNC(FldEff_UseDive),
++    PORT_NATIVE_FUNC(FldEff_PokeballTrail),
++    PORT_NATIVE_FUNC(FldEff_XIcon),
++    PORT_NATIVE_FUNC(FldEff_PopOutOfAsh),
++    PORT_NATIVE_FUNC(FldEff_LavaridgeGymWarp),
++    PORT_NATIVE_FUNC(FldEff_SweetScent),
++    PORT_NATIVE_FUNC(FldEff_Bubbles),
++    PORT_NATIVE_FUNC(FldEff_Sparkle),
++    PORT_NATIVE_FUNC(FldEff_CutGrass),
++    PORT_NATIVE_FUNC(FldEff_FieldMoveShowMonInit),
++    PORT_NATIVE_FUNC(FldEff_HallOfFameRecord),
++    PORT_NATIVE_FUNC(FldEff_UseTeleport),
++    PORT_NATIVE_FUNC(FldEff_SmileyFaceIcon),
++    PORT_NATIVE_FUNC(FldEff_UseVsSeeker),
++    PORT_NATIVE_FUNC(FldEff_DoubleExclMarkIcon),
++    PORT_NATIVE_FUNC(FldEff_MoveDeoxysRock),
++    PORT_NATIVE_FUNC(FldEff_DestroyDeoxysRock),
++    PORT_NATIVE_FUNC(FldEff_PhotoFlash),
++};
++#endif
++
+ static void FieldEffectScript_CallNative(const u8 **script, u32 *result)
+ {
+     u32 (*func)(void) = (u32 (*)(void))FieldEffectScript_ReadWord(script);
++#ifdef PORTABLE
++    *result = Port_CallNativeExtended(sFieldEffectNatives, NELEMS(sFieldEffectNatives), (void (*)(void))func,
++                                      "FieldEffectScript_CallNative");
++#else
+     *result = func();
++#endif
+     *script += sizeof(u32);
+ }
+ 
+diff --git a/src/fieldmap.c b/src/fieldmap.c
+index 4156777..76f2222 100644
+--- a/src/fieldmap.c
++++ b/src/fieldmap.c
+@@ -471,7 +471,13 @@ static bool32 SavedMapViewIsEmpty(void)
+     u16 i;
+     u32 marker = 0;
+ 
+-#ifndef UBFIX
++#if defined(PORTABLE)
++    // Retail behavior (the UBFIX branch below differs): ORs 0x200 halfwords
++    // from mapView, i.e. reads 0x200 bytes past it, still inside SaveBlock2
++    // (mapView at 0x898, sizeof 0xF24, same layout as the ROM).
++    for (i = 0; i < 0x200; i++)
++        marker |= ((const u16 *)((const u8 *)gSaveBlock2Ptr + offsetof(struct SaveBlock2, mapView)))[i];
++#elif !defined(UBFIX)
+     // BUG: This loop extends past the bounds of the mapView array. Its size is only 0x100.
+     for (i = 0; i < 0x200; i++)
+         marker |= gSaveBlock2Ptr->mapView[i];
+diff --git a/src/intro.c b/src/intro.c
+index bec0f31..c737314 100644
+--- a/src/intro.c
++++ b/src/intro.c
+@@ -877,6 +877,20 @@ static const struct CompressedSpriteSheet sFightSceneSpriteSheets[] = {
+ // LoadSpritePalettes uses a {0} entry to signal end of array.
+ // Because such an entry is absent in this case, the function
+ // continues reading into the next .rodata section.
++#if defined(PORTABLE) && !defined(BUGFIX)
++// fireredsim: in the retail ROM the next .rodata is battle_anim_special.c's
++// (sCaptureStar, gBallParticleSpritesheets, ...). LoadSpritePalettes reads 92
++// more 8-byte "entries" from there until one with a NULL data pointer (or
++// until no palette slot is free), allocating a sprite palette slot for every
++// new tag. The tags below are those entries' tag halfwords, read from the
++// retail ROM (0x0840BF3C..0x0840C21C), so slot allocation (sSpritePaletteTags)
++// is identical to retail. Their data pointers point into ROM data or unmapped
++// memory, i.e. the colors retail loads into those slots are garbage that no
++// sprite uses; natively they load black (presentation only, see
++// game/NATIVE_CHANGES.md).
++static const u16 sRetailOverrunPal[16] = {0};
++#define RETAIL_OVERRUN(tag) {sRetailOverrunPal, (tag)}
++#endif
+ static const struct SpritePalette sFightSceneSpritePalettes[] = {
+ 	{sGengar_Pal,            PALTAG_GENGAR},
+ 	{sNidorino_Pal,          PALTAG_NIDORINO},
+@@ -885,6 +899,24 @@ static const struct SpritePalette sFightSceneSpritePalettes[] = {
+ 	{sScene3_RecoilDust_Pal, PALTAG_SCENE3_RECOIL_DUST},
+ #ifdef BUGFIX
+     {0}
++#elif defined(PORTABLE)
++    RETAIL_OVERRUN(0x000F), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608),
++    RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA608),
++    RETAIL_OVERRUN(0xA608), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC),
++    RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0xA6DC),
++    RETAIL_OVERRUN(0xA6DC), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x0002), RETAIL_OVERRUN(0x0002), RETAIL_OVERRUN(0xFFFE), RETAIL_OVERRUN(0xFFFF),
++    RETAIL_OVERRUN(0xFFFF), RETAIL_OVERRUN(0xFFFF), RETAIL_OVERRUN(0x0007), RETAIL_OVERRUN(0x0007), RETAIL_OVERRUN(0xC008), RETAIL_OVERRUN(0xC02C),
++    RETAIL_OVERRUN(0xC03C), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x0505), RETAIL_OVERRUN(0x0C29), RETAIL_OVERRUN(0x0B21), RETAIL_OVERRUN(0x0A21),
++    RETAIL_OVERRUN(0x0B21), RETAIL_OVERRUN(0x0819), RETAIL_OVERRUN(0x103D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D),
++    RETAIL_OVERRUN(0xC9C8), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x760D), RETAIL_OVERRUN(0x53D7), RETAIL_OVERRUN(0x7B2C), RETAIL_OVERRUN(0x2A3F),
++    RETAIL_OVERRUN(0x0403), RETAIL_OVERRUN(0x0506), RETAIL_OVERRUN(0xC9D0), RETAIL_OVERRUN(0x0000), RETAIL_OVERRUN(0x1B3D), RETAIL_OVERRUN(0xFFFF),
++    RETAIL_OVERRUN(0x274A), RETAIL_OVERRUN(0xC20C),
++    {0}
+ #endif
+ };
+ 
+diff --git a/src/isagbprn.c b/src/isagbprn.c
+index 5890e76..83c2cd6 100644
+--- a/src/isagbprn.c
++++ b/src/isagbprn.c
+@@ -35,7 +35,42 @@ typedef void (*LPFN_PRINT_FLUSH)(void);
+ #if !defined(NDEBUG) || REVISION >= 0xA
+ 
+ // AGBPrint print functions
+-#if (LOG_HANDLER == LOG_HANDLER_AGB_PRINT)
++#if (LOG_HANDLER == LOG_HANDLER_AGB_PRINT) && defined(PORTABLE)
++// fireredsim: the AGB print area (0x09FE20F8 etc.) is cartridge ROM space on a
++// retail GBA: writes are ignored and reads return open-bus values. The only
++// game-visible effect of these routines is that a failing assertion stops the
++// program (AGBPrintFlush jumps into the print area, then swi 0xFF), which the
++// simulator reports. REG_WAITCNT is saved and restored, i.e. unchanged.
++void AGBPrintInit(void)
++{
++}
++
++void AGBPutc(const char cChr)
++{
++}
++
++void AGBPrint(const char *pBuf)
++{
++}
++
++void AGBPrintf(const char *pBuf, ...)
++{
++}
++
++void AGBPrintFlush1Block(void)
++{
++}
++
++void AGBPrintFlush(void)
++{
++}
++
++void AGBAssert(const char *pFile, int nLine, const char *pExpression, int nStopProgram)
++{
++    if (nStopProgram)
++        Port_Crash("assertion failed: %s:%d: %s (the retail ROM crashes here)", pFile, nLine, pExpression);
++}
++#elif (LOG_HANDLER == LOG_HANDLER_AGB_PRINT)
+ void AGBPrintFlush1Block(void);
+ 
+ void AGBPrintInit(void)
+@@ -205,7 +240,12 @@ void NoCashGBAAssert(const char *pFile, s32 nLine, const char *pExpression, bool
+     if (nStopProgram)
+     {
+         NoCashGBAPrintf("ASSERTION FAILED  FILE=[%s] LINE=[%d]  EXP=[%s]", pFile, nLine, pExpression);
++#ifdef PORTABLE
++        // swi 0xFF after the message: the retail ROM crashes/hangs here.
++        Port_Crash("assertion failed: %s:%d: %s", pFile, nLine, pExpression);
++#else
+         asm(".hword 0xEFFF");
++#endif
+     }
+     else
+     {
+@@ -253,7 +293,12 @@ void MgbaAssert(const char *pFile, s32 nLine, const char *pExpression, bool32 nS
+     if (nStopProgram)
+     {
+         MgbaPrintf(MGBA_LOG_ERROR, "ASSERTION FAILED  FILE=[%s] LINE=[%d]  EXP=[%s]", pFile, nLine, pExpression);
++#ifdef PORTABLE
++        // swi 0xFF after the message: the retail ROM crashes/hangs here.
++        Port_Crash("assertion failed: %s:%d: %s", pFile, nLine, pExpression);
++#else
+         asm(".hword 0xEFFF");
++#endif
+     }
+     else
+     {
+diff --git a/src/item_use.c b/src/item_use.c
+index 954f482..ebba90b 100644
+--- a/src/item_use.c
++++ b/src/item_use.c
+@@ -38,6 +38,9 @@
+ #include "constants/moves.h"
+ #include "constants/songs.h"
+ #include "constants/field_weather.h"
++#ifdef PORTABLE
++#include "main.h" // gMain.inBattle (PORT_NOTE_ITEM_USE, gba/portable_abi.h)
++#endif
+ 
+ static EWRAM_DATA void (*sItemUseOnFieldCB)(u8 taskId) = NULL;
+ 
+@@ -573,6 +576,9 @@ static void Task_UseRepel(u8 taskId)
+ static void RemoveUsedItem(void)
+ {
+     RemoveBagItem(gSpecialVar_ItemId, 1);
++#ifdef PORTABLE
++    PORT_NOTE_ITEM_USE(gSpecialVar_ItemId); // Repel, Escape Rope (field), Poke Doll / Fluffy Tail (battle): consumed
++#endif
+     Pocket_CalculateNItemsAndMaxShowed(ItemId_GetPocket(gSpecialVar_ItemId));
+     PocketCalculateInitialCursorPosAndItemsAbove(ItemId_GetPocket(gSpecialVar_ItemId));
+     CopyItemName(gSpecialVar_ItemId, gStringVar2);
+@@ -772,6 +778,9 @@ static void Task_BattleUse_StatBooster_DelayAndPrint(u8 taskId)
+         u16 itemId = gSpecialVar_ItemId;
+         PlaySE(SE_USE_ITEM);
+         RemoveBagItem(itemId, 1);
++#ifdef PORTABLE
++        PORT_NOTE_ITEM_USE(itemId); // X items, Guard Spec, Dire Hit: consumed (skill event use_battle_item)
++#endif
+         DisplayItemMessageInBag(taskId, FONT_NORMAL, Battle_PrintStatBoosterEffectMessage(itemId), Task_BattleUse_StatBooster_WaitButton_ReturnToBattle);
+     }
+ }
+diff --git a/src/librfu_intr.c b/src/librfu_intr.c
+index e97072a..2ae87f1 100644
+--- a/src/librfu_intr.c
++++ b/src/librfu_intr.c
+@@ -394,6 +394,24 @@ static void STWI_init_slave(void)
+     REG_SIOCNT = SIO_INTR_ENABLE | SIO_32BIT_MODE | SIO_57600_BPS | SIO_ENABLE;
+ }
+ 
++#ifdef PORTABLE
++// The ARM versions tail-jump to the callback with the first arguments still in
++// r0/r1; the C equivalents call it with the same arguments.
++static void Callback_Dummy_M(int reqCommandId, int error, void (*callbackM)())
++{
++    callbackM(reqCommandId, error);
++}
++
++static void Callback_Dummy_S(u16 reqCommandId, void (*callbackS)(u16))
++{
++    callbackS(reqCommandId);
++}
++
++static void Callback_Dummy_ID(void (*callbackId)(void))
++{
++    callbackId();
++}
++#else
+ NAKED
+ #if __STDC_VERSION__ < 202311L
+ static void Callback_Dummy_M(int reqCommandId, int error, void (*callbackM)())
+@@ -415,3 +433,4 @@ static void Callback_Dummy_ID(void (*callbackId)(void))
+ {
+     asm("bx r0");
+ }
++#endif // PORTABLE
+diff --git a/src/librfu_rfu.c b/src/librfu_rfu.c
+index 76e2158..ec4e475 100644
+--- a/src/librfu_rfu.c
++++ b/src/librfu_rfu.c
+@@ -174,7 +174,14 @@ u16 rfu_initializeAPI(u32 *APIBuffer, u16 buffByteSize, IntrFunc *sioIntrTable_p
+         gRfuSlotStatusUNI[i]->recvBufferSize = 0;
+     }
+     // rfu_REQ_changeMasterSlave is the function next to rfu_STC_fastCopy
+-#if LIBRFU_VERSION < 1026
++#ifdef PORTABLE
++    // The ROM copies rfu_STC_fastCopy's machine code into RAM and calls the
++    // copy through fastCopyPtr. Native code is not relocatable that way: the
++    // function is called directly and fastCopyBuffer stays untouched.
++    (void)src; (void)dst;
++    gRfuFixed->fastCopyPtr = rfu_STC_fastCopy;
++    return 0;
++#elif LIBRFU_VERSION < 1026
+     src = (const u16 *)((uintptr_t)&rfu_STC_fastCopy & ~1);
+     dst = gRfuFixed->fastCopyBuffer;
+     buffByteSizeMax = ((void *)rfu_REQ_changeMasterSlave - (void *)rfu_STC_fastCopy) / sizeof(u16);
+diff --git a/src/librfu_sio32id.c b/src/librfu_sio32id.c
+index 56a18d2..736aa11 100644
+--- a/src/librfu_sio32id.c
++++ b/src/librfu_sio32id.c
+@@ -43,8 +43,17 @@ s32 AgbRFU_checkID(u8 maxTries)
+         regTMCNTL[1] = 0;
+         regTMCNTL[0] = 0;
+         regTMCNTL[1] = TIMER_1024CLK | TIMER_ENABLE;
++#ifdef PORTABLE
++        // Busy-wait of 32 timer ticks (32768 cycles) with interrupts enabled:
++        // 64 such waits at boot make the adapter probe last about 8 frames on
++        // hardware, during which VBlank/VCount interrupts keep running.
++        // Port_BootIdle delivers those interrupts (platform/frame.c).
++        Port_BootIdle();
++        regTMCNTL[0] = 32;
++#else
+         while (regTMCNTL[0] < 32)
+             ;
++#endif
+         regTMCNTL[1] = 0;
+         regTMCNTL[0] = 0;
+     }
+diff --git a/src/librfu_stwi.c b/src/librfu_stwi.c
+index 7b3b486..17e6017 100644
+--- a/src/librfu_stwi.c
++++ b/src/librfu_stwi.c
+@@ -66,8 +66,15 @@ void AgbRFU_SoftReset(void)
+     *timerH = 0;
+     *timerL = 0;
+     *timerH = TIMER_ENABLE | TIMER_1024CLK;
++#ifdef PORTABLE
++    // Busy-wait until the timer passes 0x11 (about 15 scanlines); timers do not
++    // run inside a frame in the simulator. Net effect of the loop:
++    REG_RCNT = 0x80A2;
++    *timerL = 0x12;
++#else
+     while (*timerL <= 0x11)
+         REG_RCNT = 0x80A2;
++#endif
+     *timerH = 3;
+     REG_RCNT = 0x80A0;
+     REG_SIOCNT = SIO_INTR_ENABLE | SIO_32BIT_MODE | SIO_115200_BPS;
+@@ -136,6 +143,12 @@ void STWI_set_Callback_ID(void (*func)(void)) // name in SDK, but is actually se
+ 
+ u16 STWI_poll_CommandEnd(void)
+ {
++#ifdef PORTABLE
++    // A command to the wireless adapter is in flight: it completes through
++    // serial/timer interrupts, which never occur in the simulator (no adapter).
++    if (gSTWIStatus->sending == 1)
++        Port_Unsupported("wireless adapter communication (STWI_poll_CommandEnd)");
++#endif
+     while (gSTWIStatus->sending == 1)
+         ;
+     return gSTWIStatus->error;
+diff --git a/src/link_rfu_2.c b/src/link_rfu_2.c
+index 78087d7..c0b8755 100644
+--- a/src/link_rfu_2.c
++++ b/src/link_rfu_2.c
+@@ -81,8 +81,15 @@ static EWRAM_DATA struct RfuDebug sRfuDebug = {};
+ #else
+ static u32 sRfuAPIBuffer[RFU_API_BUFF_SIZE_RAM / 4];
+ #endif
+-static u8 sResendBlock8[CMD_LENGTH * 2];
+-static u16 sResendBlock16[CMD_LENGTH];
++#ifdef PORTABLE
++// agbcc emits this uninitialised static as .lcomm, which GNU as aligns by size
++// (8 for objects of 8 bytes or more); keeps the ROM's relative RAM placement.
++#define LCOMM_ALIGN __attribute__((aligned(8)))
++#else
++#define LCOMM_ALIGN
++#endif
++static u8 sResendBlock8[CMD_LENGTH * 2] LCOMM_ALIGN;
++static u16 sResendBlock16[CMD_LENGTH] LCOMM_ALIGN;
+ 
+ #if REVISION >= 0xA
+ COMMON_DATA u32 sRfuAPIBuffer[RFU_API_BUFF_SIZE_RAM / 4] = {0};
+diff --git a/src/list_menu.c b/src/list_menu.c
+index 36b81fa..035c20b 100644
+--- a/src/list_menu.c
++++ b/src/list_menu.c
+@@ -21,13 +21,13 @@ struct MysteryGiftLinkMenuStruct
+ 
+ struct ListMenuOverride
+ {
+-    u8 cursorPal:4;
+-    u8 fillValue:4;
+-    u8 cursorShadowPal:4;
+-    u8 lettersSpacing:6;
+-    u8 field_2_2:6; // unused
+-    u8 fontId:7;
+-    bool8 enabled:1;
++    u8 cursorPal:4 BITFIELD_PACKED;
++    u8 fillValue:4 BITFIELD_PACKED;
++    u8 cursorShadowPal:4 BITFIELD_PACKED;
++    u8 lettersSpacing:6 BITFIELD_PACKED;
++    u8 field_2_2:6 BITFIELD_PACKED; // unused
++    u8 fontId:7 BITFIELD_PACKED;
++    bool8 enabled:1 BITFIELD_PACKED;
+ };
+ 
+ struct MoveMenuInfoIcon
+diff --git a/src/load_save.c b/src/load_save.c
+index 8b723dd..8c0a887 100644
+--- a/src/load_save.c
++++ b/src/load_save.c
+@@ -123,7 +123,16 @@ void MoveSaveBlocks_ResetHeap(void)
+     gMain.vblankCallback = vblankCB;
+ 
+     // create a new encryption key
++#ifdef PORTABLE
++    {
++        // Unspecified evaluation order in C; the ROM calls the left Random()
++        // first (high half). Sequenced explicitly.
++        u32 hi = Random();
++        encryptionKey = (hi << 0x10) + (Random());
++    }
++#else
+     encryptionKey = (Random() << 0x10) + (Random());
++#endif
+     ApplyNewEncryptionKeyToAllEncryptedData(encryptionKey);
+     gSaveBlock2Ptr->encryptionKey = encryptionKey;
+ #if REVISION >= 0xA
+diff --git a/src/m4a.c b/src/m4a.c
+index ebd3afe..bf7bfc9 100644
+--- a/src/m4a.c
++++ b/src/m4a.c
+@@ -327,7 +327,12 @@ void MPlayExtender(struct CgbChannel *cgbChans)
+ 
+ void MusicPlayerJumpTableCopy(void)
+ {
++#ifdef PORTABLE
++    // BIOS SoundGetJumpList; unreferenced in FireRed.
++    Port_Unsupported("MusicPlayerJumpTableCopy (BIOS SoundGetJumpList)");
++#else
+     asm("swi 0x2A");
++#endif
+ }
+ 
+ void ClearChain(void *x)
+@@ -420,11 +425,16 @@ void SampleFreqSet(u32 freq)
+ 
+     m4aSoundVSyncOn();
+ 
++#ifndef PORTABLE
+     while (*(vu8 *)REG_ADDR_VCOUNT == 159)
+         ;
+ 
+     while (*(vu8 *)REG_ADDR_VCOUNT != 159)
+         ;
++#endif
++    // PORTABLE: the loops above synchronise timer 0 (the PCM sample clock) to
++    // scanline 159. Lines never advance inside a frame in the simulator; timer 0
++    // only paces the sound FIFO DMA, which has no game-visible effect.
+ 
+     REG_TM0CNT_H = TIMER_ENABLE | TIMER_1CLK;
+ }
+@@ -438,6 +448,12 @@ void m4aSoundMode(u32 mode)
+         return;
+ 
+     soundInfo->ident++;
++#ifdef PORTABLE
++    // Boot interrupt schedule: on hardware the first VBlank after power-on
++    // arrives while AgbMain's m4aSoundInit is here (lock held: VBlankIntr's
++    // SoundMain returns at once). No-op after boot (platform/frame.c).
++    Port_BootSoundLocked(0);
++#endif
+ 
+     temp = mode & (SOUND_MODE_REVERB_SET | SOUND_MODE_REVERB_VAL);
+ 
+@@ -578,6 +594,11 @@ void MPlayOpen(struct MusicPlayerInfo *mplayInfo, struct MusicPlayerTrack *track
+         return;
+ 
+     soundInfo->ident++;
++#ifdef PORTABLE
++    // Boot interrupt schedule: the second VBlank after power-on arrives inside
++    // m4aSoundInit's third MPlayOpen (lock held). No-op after boot.
++    Port_BootSoundLocked(1);
++#endif
+ 
+     Clear64byte(mplayInfo);
+ 
+@@ -616,6 +637,9 @@ void MPlayStart(struct MusicPlayerInfo *mplayInfo, struct SongHeader *songHeader
+ 
+     if (mplayInfo->ident != ID_NUMBER)
+         return;
++#ifdef PORTABLE
++    Port_SoundSongCheck(songHeader, mplayInfo->trackCount);
++#endif
+ 
+     unk_B = mplayInfo->unk_B;
+ 
+@@ -1003,6 +1027,9 @@ void CgbSound(void)
+                 case 3:
+                     if (channels->wavePointer != channels->currentPointer)
+                     {
++#ifdef PORTABLE
++                        Port_SoundReadCheck(channels->wavePointer, 16);
++#endif
+                         *nrx0ptr = 0x40;
+                         REG_WAVE_RAM0 = channels->wavePointer[0];
+                         REG_WAVE_RAM1 = channels->wavePointer[1];
+@@ -1442,6 +1469,9 @@ void ply_memacc(struct MusicPlayerInfo *mplayInfo, struct MusicPlayerTrack *trac
+ 
+     op = *track->cmdPtr;
+     track->cmdPtr++;
++#ifdef PORTABLE
++    Port_SoundReadCheck(mplayInfo->memAccArea, 256); // both operands index it with a byte
++#endif
+ 
+     addr = mplayInfo->memAccArea + *track->cmdPtr;
+     track->cmdPtr++;
+diff --git a/src/main.c b/src/main.c
+index 542b0f5..3613473 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -37,8 +37,12 @@ const u8 gGameVersion = GAME_VERSION;
+ 
+ const u8 gGameLanguage = GAME_LANGUAGE;
+ 
+-#if MODERN
++#if MODERN && !defined(PORTABLE)
+ const char BuildDateTime[] = __DATE__ " " __TIME__;
++#elif MODERN && defined(PORTABLE)
++// fireredsim: the retail string, so that builds are reproducible (the
++// executable's hash is the snapshot build id) and ROM data matches.
++const char BuildDateTime[] = "2004 04 26 11:20";
+ #else
+ #if REVISION == 0
+ const char BuildDateTime[] = "2004 04 26 11:20";
+@@ -97,7 +101,16 @@ void EnableVCountIntrAtLine150(void);
+ 
+ #define B_START_SELECT (B_BUTTON | START_BUTTON | SELECT_BUTTON)
+ 
++#ifdef PORTABLE
++// fireredsim: AgbMain is split into AgbMain_Init (everything before the main
++// loop) and AgbMain_RunFrame (one iteration of the loop). The host's frame
++// driver (platform/frame.c) calls AgbMain_RunFrame once per frame and delivers
++// the VBlank/VCount interrupts at the points where they occur on hardware, so
++// no second stack or coroutine is needed (ARCHITECTURE.md sections 1.3 and 4).
++void AgbMain_Init(void)
++#else
+ void AgbMain()
++#endif
+ {
+ #if REVISION >= 0xA
+     svc_stubbed();
+@@ -106,6 +119,11 @@ void AgbMain()
+     // Modern compilers are liberal with the stack on entry to this function,
+     // so RegisterRamReset may crash if it resets IWRAM.
+     RegisterRamReset(RESET_ALL & ~RESET_IWRAM);
++#ifdef PORTABLE
++    // The ARM loop below clears IWRAM 0x03000000-0x03007E00, i.e. every IWRAM
++    // variable (the top 0x200 bytes hold the stack and the IRQ vector words).
++    Port_ClearIwramVariables();
++#else
+     asm("mov\tr1, #0xC0\n"
+         "\tlsl\tr1, r1, #0x12\n"
+         "\tmov\tr2, #0xFC\n"
+@@ -130,6 +148,7 @@ void AgbMain()
+         :
+         : "r0", "r1", "r2", "r3", "r4", "r5", "memory"
+     );
++#endif // PORTABLE
+ #else
+     RegisterRamReset(RESET_ALL);
+ #endif //MODERN
+@@ -175,8 +194,15 @@ void AgbMain()
+ 
+     gLinkTransferringData = FALSE;
+ 
++#ifdef PORTABLE
++}
++
++void AgbMain_RunFrame(void)
++{
++#else
+     for (;;)
+     {
++#endif
+         ReadKeys();
+ 
+         if (gSoftResetDisabled == FALSE
+@@ -211,10 +237,18 @@ void AgbMain()
+             }
+         }
+ 
++#ifdef PORTABLE
++        // Differential testing only (no-op unless a lag profile is loaded):
++        // VCount/VBlank interrupts that the real hardware took in the middle of
++        // this frame's body because it ran longer than one frame.
++        Port_LagHook();
++#endif
+         PlayTimeCounter_Update();
+         MapMusicMain();
+         WaitForVBlank();
++#ifndef PORTABLE
+     }
++#endif
+ }
+ 
+ static void UpdateLinkAndCallCallbacks(void)
+@@ -263,7 +297,13 @@ void StartTimer1(void)
+ 
+ void SeedRngAndSetTrainerId(void)
+ {
++#ifdef PORTABLE
++    // Timer 1 runs freely on hardware; natively each read takes the next value
++    // of a host-supplied sequence (see Port_SetTimer1Values).
++    u16 val = Port_ReadTimer1Counter();
++#else
+     u16 val = REG_TM1CNT_L;
++#endif
+     SeedRng(val);
+     REG_TM1CNT_H = 0;
+     gTrainerId = val;
+@@ -357,8 +397,19 @@ void InitIntrHandlers(void)
+     EnableInterrupts(INTR_FLAG_VBLANK);
+ }
+ 
++#ifdef PORTABLE
++extern u8 gPortLagAnchorsActive;
++void Port_VBlankCallbackAnchor(const void *next);
++#endif
++
+ void SetVBlankCallback(IntrCallback callback)
+ {
++#ifdef PORTABLE
++    // Differential testing only (anchored lag profiles, platform/frame.c);
++    // gPortLagAnchorsActive is never set in normal runs.
++    if (gPortLagAnchorsActive)
++        Port_VBlankCallbackAnchor(callback);
++#endif
+     gMain.vblankCallback = callback;
+ }
+ 
+@@ -463,8 +514,13 @@ static void WaitForVBlank(void)
+ {
+     gMain.intrCheck &= ~INTR_FLAG_VBLANK;
+ 
++#ifndef PORTABLE
+     while (!(gMain.intrCheck & INTR_FLAG_VBLANK))
+         ;
++#endif
++    // PORTABLE: the frame body ends here. The spin loop is left on hardware when
++    // VBlankIntr sets the flag; the frame driver runs VBlankIntr before the next
++    // AgbMain_RunFrame, which is the same point in the instruction stream.
+ }
+ 
+ void SetVBlankCounter1Ptr(u32 *ptr)
+diff --git a/src/map_preview_screen.c b/src/map_preview_screen.c
+index dfe3318..8a7f356 100644
+--- a/src/map_preview_screen.c
++++ b/src/map_preview_screen.c
+@@ -443,8 +443,13 @@ u16 MapPreview_CreateMapNameWindow(u8 mapsec)
+ {
+     u16 windowId;
+     u32 xctr;
+-    #ifdef BUGFIX
++    #if defined(BUGFIX) || defined(PORTABLE)
+     // Fixes access violations indicated below.
++    // PORTABLE: on the GBA the three bytes land in this function's own frame
++    // (agbcc puts color at sp+20, inside the save slot of the caller's r8), the
++    // text is printed with the intended colors; on x86 a zero-length stack array
++    // is unsafe. Same text output; the retail side effect on the caller's r8 is
++    // not reproduced (see game/NATIVE_CHANGES.md).
+     u8 color[3];
+     #else
+     u8 color[0];
+diff --git a/src/multiboot.c b/src/multiboot.c
+index b44c421..9289669 100644
+--- a/src/multiboot.c
++++ b/src/multiboot.c
+@@ -392,6 +392,11 @@ static int MultiBootHandShake(struct MultiBootParam *mp)
+ 
+ static NOINLINE void MultiBootWaitCycles(u32 cycles)
+ {
++#ifdef PORTABLE
++    // Busy-wait of `cycles` CPU cycles; time does not pass inside a frame in
++    // the simulator (multiboot itself is unsupported: no link partner).
++    (void)cycles;
++#else
+     asm("mov r2, pc");
+     asm("lsr r2, #24");
+     asm("mov r1, #12");
+@@ -405,6 +410,7 @@ static NOINLINE void MultiBootWaitCycles(u32 cycles)
+     asm("MultiBootWaitCyclesLoop:");
+     asm("sub r0, r1");
+     asm("bgt MultiBootWaitCyclesLoop");
++#endif
+ }
+ 
+ static void MultiBootWaitSendDone(void)
+diff --git a/src/naming_screen.c b/src/naming_screen.c
+index deef705..61341f5 100644
+--- a/src/naming_screen.c
++++ b/src/naming_screen.c
+@@ -617,19 +617,54 @@ static const u8 sPageToKeyboardId[KBPAGE_COUNT] =
+     [KBPAGE_LETTERS_LOWER] = KEYBOARD_LETTERS_LOWER
+ };
+ 
++#ifdef PORTABLE
++// The sprite callbacks run once after MainState_Exit freed sNamingScreen
++// (SpriteCB_Cursor -> GetCurrentPageColumnCount -> CurrentPageToKeyboardId):
++// currentPage then comes from the BIOS region, i.e. byte 2 of the BIOS
++// open-bus word: 0x5E (0xE55EC002 after an interrupt, 0xE25EF004 inside one)
++// or 0xA0 (0xE3A02004 after a SWI). Retail indexes these 3-entry ROM tables
++// with it and reads whatever ROM data follows them; natively the neighbours
++// of the table are other data. The retail bytes for the two reachable
++// indices (pokefirered.gba: sPageToNextGfxId 0x083E234B, sPageToNextKeyboardId
++// 0x083E234E, sPageToKeyboardId 0x083E2351, + 0x5E / + 0xA0) are used; any
++// other out-of-range page ends the environment (INEXACT).
++static u8 RetailPageLookup(const u8 *table, u8 page, u8 at5E, u8 atA0, const char *name)
++{
++    if (page < KBPAGE_COUNT)
++        return table[page];
++    if (page == 0x5E)
++        return at5E;
++    if (page == 0xA0)
++        return atA0;
++    Port_Inexact("naming screen: %s[%u] reads ROM data past the table", name, page);
++}
++#endif
++
+ static u8 PageToNextGfxId(u8 page)
+ {
++#ifdef PORTABLE
++    return RetailPageLookup(sPageToNextGfxId, page, 0, 0, "sPageToNextGfxId");
++#else
+     return sPageToNextGfxId[page];
++#endif
+ }
+ 
+ static u8 CurrentPageToNextKeyboardId(void)
+ {
++#ifdef PORTABLE
++    return RetailPageLookup(sPageToNextKeyboardId, sNamingScreen->currentPage, 24, 255, "sPageToNextKeyboardId");
++#else
+     return sPageToNextKeyboardId[sNamingScreen->currentPage];
++#endif
+ }
+ 
+ static u8 CurrentPageToKeyboardId(void)
+ {
++#ifdef PORTABLE
++    return RetailPageLookup(sPageToKeyboardId, sNamingScreen->currentPage, 0, 0, "sPageToKeyboardId");
++#else
+     return sPageToKeyboardId[sNamingScreen->currentPage];
++#endif
+ }
+ 
+ static bool8 MainState_FadeIn(void)
+@@ -1038,6 +1073,9 @@ static void StartButtonFlash(struct Task *task, u8 button, u8 keepFlashing)
+ 
+ static void SpriteCB_Cursor(struct Sprite *sprite)
+ {
++    // PORTABLE: MainState_Exit frees sNamingScreen inside RunTasks; AnimateSprites
++    // then still runs this callback once in the same frame and reads the fields
++    // through NULL from the GBA BIOS region (emulated exactly by platform/memfault.c).
+     if (sprite->animEnded)
+         StartSpriteAnim(sprite, 0);
+ 
+@@ -1100,7 +1138,10 @@ static void SpriteCB_InputArrow(struct Sprite *sprite)
+ static void SpriteCB_Underscore(struct Sprite *sprite)
+ {
+     const s16 y[] = {2, 3, 2, 1};
+-    u8 pos = GetTextEntryPosition();
++    u8 pos;
++    // PORTABLE: runs once after MainState_Exit freed sNamingScreen, like
++    // SpriteCB_Cursor; GetTextEntryPosition reproduces the retail reads.
++    pos = GetTextEntryPosition();
+ 
+     if (pos != (u8)sprite->sId)
+     {
+@@ -1784,12 +1825,50 @@ static u8 GetTextEntryPosition(void)
+ {
+     u8 i;
+ 
++#ifdef PORTABLE
++    // SpriteCB_Underscore runs once after MainState_Exit freed sNamingScreen:
++    // retail then reads the template pointer from the BIOS region (BIOS open
++    // bus, emulated by platform/memfault.c) and maxChars through it from
++    // unmapped memory: the CPU open bus, the Thumb opcode two instructions after
++    // the load. The ROM loads maxChars once before the loop (LDRB at 0x0809F676,
++    // opcode 0x429A at 0x0809F67A) and once more for the return value (LDRB at
++    // 0x0809F6AA, opcode 0x0600 at 0x0809F6AE). For a live sNamingScreen these
++    // are plain reads of the same value.
++    //
++    // The callback does not always run just once: after a caught mon's nickname
++    // the return callback (BattleMainCB2) keeps animating the underscores until
++    // the battle ends. Through NULL every textBuffer byte would then be a
++    // fault (memfault.c, microseconds each, up to ~150 per underscore per
++    // frame), so the BIOS-region reads are made explicitly: all of them return
++    // a byte of the same open-bus word (nothing between them leaves the BIOS
++    // or takes an interrupt), selected by the address lanes.
++    if (sNamingScreen == NULL)
++    {
++        u32 bus = Port_BiosOpenBus32(offsetof(struct NamingScreenData, template));
++        const struct NamingScreenTemplate *template = (const struct NamingScreenTemplate *)(uintptr_t)bus;
++        u8 maxChars = Port_LoadWithOpenBus(&template->maxChars, 1, 0x429A);
++        for (i = 0; i < maxChars; i++)
++        {
++            if (((bus >> (8 * ((offsetof(struct NamingScreenData, textBuffer) + i) & 3))) & 0xFF) == EOS)
++                return i;
++        }
++        return (u8)Port_LoadWithOpenBus(&template->maxChars, 1, 0x0600) - 1;
++    }
++    u8 maxChars = Port_LoadWithOpenBus(&sNamingScreen->template->maxChars, 1, 0x429A);
++    for (i = 0; i < maxChars; i++)
++    {
++        if (sNamingScreen->textBuffer[i] == EOS)
++            return i;
++    }
++    return (u8)Port_LoadWithOpenBus(&sNamingScreen->template->maxChars, 1, 0x0600) - 1;
++#else
+     for (i = 0; i < sNamingScreen->template->maxChars; i++)
+     {
+         if (sNamingScreen->textBuffer[i] == EOS)
+             return i;
+     }
+     return sNamingScreen->template->maxChars - 1;
++#endif
+ }
+ 
+ static u8 GetPreviousTextCaretPosition(void)
+@@ -2021,6 +2100,22 @@ static void VBlankCB_NamingScreen(void)
+     LoadOam();
+     ProcessSpriteCopyRequests();
+     TransferPlttBuffer();
++#ifdef PORTABLE
++    if (sNamingScreen == NULL)
++    {
++        // MainState_Exit freed the data and the VBlank callback stays installed
++        // until CB2_ReturnFromNamingScreen clears it, so it runs once more: the
++        // retail ROM then reads these fields through NULL, i.e. from the BIOS
++        // area, getting the BIOS open-bus value (as mGBA emulates it).
++        SetGpuReg(REG_OFFSET_BG1VOFS, Port_BiosOpenBus16(offsetof(struct NamingScreenData, bg1vOffset)));
++        SetGpuReg(REG_OFFSET_BG2VOFS, Port_BiosOpenBus16(offsetof(struct NamingScreenData, bg2vOffset)));
++        SetGpuReg(REG_OFFSET_BG1CNT, GetGpuReg(REG_OFFSET_BG1CNT) & 0xFFFC);
++        SetGpuRegBits(REG_OFFSET_BG1CNT, Port_BiosOpenBus16(offsetof(struct NamingScreenData, bg1Priority)));
++        SetGpuReg(REG_OFFSET_BG2CNT, GetGpuReg(REG_OFFSET_BG2CNT) & 0xFFFC);
++        SetGpuRegBits(REG_OFFSET_BG2CNT, Port_BiosOpenBus16(offsetof(struct NamingScreenData, bg2Priority)));
++        return;
++    }
++#endif
+     SetGpuReg(REG_OFFSET_BG1VOFS, sNamingScreen->bg1vOffset);
+     SetGpuReg(REG_OFFSET_BG2VOFS, sNamingScreen->bg2vOffset);
+     SetGpuReg(REG_OFFSET_BG1CNT, GetGpuReg(REG_OFFSET_BG1CNT) & 0xFFFC); // clear priority bits
+diff --git a/src/option_menu.c b/src/option_menu.c
+index 0b55a34..2ca6013 100644
+--- a/src/option_menu.c
++++ b/src/option_menu.c
+@@ -12,7 +12,14 @@
+ #include "gba/m4a_internal.h"
+ 
+ // can't include the one in menu_helpers.h since Task_OptionMenu needs bool32 for matching
++#ifdef PORTABLE
++// The definition (menu_helpers.c) returns bool8: agbcc's callee extends it to all
++// of r0, GCC/i386 defines only AL. Declared with its real type, the caller's
++// (bool32) conversion gives the ROM's value (game/NATIVE_CHANGES.md, ABI).
++bool8 IsActiveOverworldLinkBusy(void);
++#else
+ bool32 IsActiveOverworldLinkBusy(void);
++#endif
+ 
+ // Menu items
+ enum
+diff --git a/src/overworld.c b/src/overworld.c
+index 339014d..47b95ed 100644
+--- a/src/overworld.c
++++ b/src/overworld.c
+@@ -439,6 +439,19 @@ static void LoadSaveblockObjEventScripts(void)
+     const struct ObjectEventTemplate * src = gMapHeader.events->objectEvents;
+     struct ObjectEventTemplate * savObjTemplates = gSaveBlock1Ptr->objectEventTemplates;
+ 
++#ifdef PORTABLE
++    // The loop reads all 64 templates, also past the map's own ones. For a map
++    // without object events (objectEvents == NULL, e.g. the player's room when
++    // continuing a game saved there) retail reads the script fields from the
++    // BIOS area, i.e. the BIOS open-bus value; natively that would fault.
++    if (src == NULL)
++    {
++        for (i = 0; i < OBJECT_EVENT_TEMPLATES_COUNT; i++)
++            savObjTemplates[i].script = (const u8 *)Port_BiosOpenBus32(
++                i * sizeof(struct ObjectEventTemplate) + offsetof(struct ObjectEventTemplate, script));
++        return;
++    }
++#endif
+     for (i = 0; i < OBJECT_EVENT_TEMPLATES_COUNT; i++)
+     {
+         savObjTemplates[i].script = src[i].script;
+@@ -2042,7 +2055,23 @@ static bool32 ReturnToFieldLink(u8 *state)
+ 
+ static void DoMapLoadLoop(u8 *state)
+ {
++#ifdef PORTABLE
++    // On hardware this loop spins across several frames: state 9 waits for the
++    // DMA3 queue (FreeTempTileDataBuffersIfPossible), which only VBlankIntr's
++    // ProcessDma3Requests drains. Frames do not pass inside a native frame
++    // body, so an iteration that made no progress idles until the next VBlank,
++    // delivering the interrupts the hardware takes meanwhile.
++    for (;;)
++    {
++        u8 prev = *state;
++        if (LoadMapInStepsLocal(state, FALSE))
++            break;
++        if (*state == prev)
++            Port_PollUntilVBlank();
++    }
++#else
+     while (!LoadMapInStepsLocal(state, FALSE)) ;
++#endif
+ }
+ 
+ static void MoveSaveBlocks_ResetHeap_(void)
+@@ -2239,8 +2268,20 @@ static void CB2_LoadMapForQLPlayback(void)
+ 
+ static void DoLoadMap_QLPlayback(u8 *state)
+ {
++#ifdef PORTABLE
++    // Same nested wait as DoMapLoadLoop (state 8 waits for the DMA3 queue).
++    for (;;)
++    {
++        u8 prev = *state;
++        if (LoadMap_QLPlayback(state))
++            break;
++        if (*state == prev)
++            Port_PollUntilVBlank();
++    }
++#else
+     while (!LoadMap_QLPlayback(state))
+         ;
++#endif
+ }
+ 
+ static bool32 LoadMap_QLPlayback(u8 *state)
+diff --git a/src/palette.c b/src/palette.c
+index 84f2342..84068a6 100644
+--- a/src/palette.c
++++ b/src/palette.c
+@@ -32,11 +32,11 @@ struct PaletteStructTemplate
+ struct PaletteStruct
+ {
+     const struct PaletteStructTemplate *template;
+-    bool32 active:1;
+-    bool32 flag:1;
+-    u32 baseDestOffset:9;
+-    u16 destOffset:10;
+-    u16 srcIndex:7;
++    bool32 active:1 BITFIELD_PACKED;
++    bool32 flag:1 BITFIELD_PACKED;
++    u32 baseDestOffset:9 BITFIELD_PACKED;
++    u16 destOffset:10 BITFIELD_PACKED;
++    u16 srcIndex:7 BITFIELD_PACKED;
+     u8 countdown1;
+     u8 countdown2;
+ };
+diff --git a/src/party_menu.c b/src/party_menu.c
+index 7f3a881..8eecd99 100644
+--- a/src/party_menu.c
++++ b/src/party_menu.c
+@@ -4499,7 +4499,12 @@ void ItemUseCB_MedicineStep(u8 taskId, TaskFunc func)
+         {
+             PlaySE(SE_USE_ITEM);
+             if (gPartyMenu.action != PARTY_ACTION_REUSABLE_ITEM)
++            {
+                 RemoveBagItem(item, 1);
++#ifdef PORTABLE
++                PORT_NOTE_ITEM_USE(item); // medicine, status heals, vitamins, berries (field or battle): consumed (not the flutes)
++#endif
++            }
+         }
+         else
+             PlaySE(SE_GLASS_FLUTE);
+@@ -4664,6 +4669,9 @@ static void ItemUseCB_RestorePP(u8 taskId, TaskFunc func)
+     ItemUse_SetQuestLogEvent(QL_EVENT_USED_ITEM, mon, gSpecialVar_ItemId, 0xFFFF);
+     PlaySE(SE_USE_ITEM);
+     RemoveBagItem(gSpecialVar_ItemId, 1);
++#ifdef PORTABLE
++    PORT_NOTE_ITEM_USE(gSpecialVar_ItemId); // Ether, Elixir, PP Up / Max: consumed
++#endif
+     move = GetMonData(mon, gPartyMenu.ppMoveSlot + MON_DATA_MOVE1);
+     StringCopy(gStringVar1, gMoveNames[move]);
+     GetMedicineItemEffectMessage(gSpecialVar_ItemId);
+@@ -4695,6 +4703,9 @@ static void TryUsePPItemInBattle(u8 taskId)
+         ItemUse_SetQuestLogEvent(QL_EVENT_USED_ITEM, mon, item, 0xFFFF);
+         PlaySE(SE_USE_ITEM);
+         RemoveBagItem(item, 1);
++#ifdef PORTABLE
++        PORT_NOTE_ITEM_USE(item); // Ether, Elixir in battle: consumed (skill event use_battle_item)
++#endif
+         move = GetMonData(mon, MON_DATA_MOVE1 + *moveSlot);
+         StringCopy(gStringVar1, gMoveNames[move]);
+         GetMedicineItemEffectMessage(item);
+@@ -5055,6 +5066,9 @@ static void ItemUseCB_RareCandyStep(u8 taskId, TaskFunc func)
+     PlayFanfareByFanfareNum(FANFARE_LEVEL_UP);
+     UpdateMonDisplayInfoAfterRareCandy(gPartyMenu.slotId, mon);
+     RemoveBagItem(gSpecialVar_ItemId, 1);
++#ifdef PORTABLE
++    PORT_NOTE_ITEM_USE(gSpecialVar_ItemId); // Rare Candy: consumed
++#endif
+     GetMonNickname(mon, gStringVar1);
+     level = GetMonData(mon, MON_DATA_LEVEL);
+     ConvertIntToDecimalStringN(gStringVar2, level, STR_CONV_MODE_LEFT_ALIGN, 3);
+@@ -5266,6 +5280,9 @@ static void Task_SacredAshLoop(u8 taskId)
+                 if (gPartyMenu.menuType != PARTY_MENU_TYPE_IN_BATTLE)
+                     ItemUse_SetQuestLogEvent(QL_EVENT_USED_ITEM, sSacredAshQuestLogMonBackup, gSpecialVar_ItemId, 0xFFFF);
+                 RemoveBagItem(gSpecialVar_ItemId, 1);
++#ifdef PORTABLE
++                PORT_NOTE_ITEM_USE(gSpecialVar_ItemId); // Sacred Ash: consumed (a fainted mon revived)
++#endif
+             }
+             gTasks[taskId].func = Task_ClosePartyMenuAfterText;
+             gPartyMenu.slotId = 0;
+@@ -5313,6 +5330,9 @@ static void CB2_UseEvolutionStone(void)
+     ExecuteTableBasedItemEffect_(gPartyMenu.slotId, gSpecialVar_ItemId, 0);
+     ItemUse_SetQuestLogEvent(QL_EVENT_USED_ITEM, &gPlayerParty[gPartyMenu.slotId], gSpecialVar_ItemId, 0xFFFF);
+     RemoveBagItem(gSpecialVar_ItemId, 1);
++#ifdef PORTABLE
++    PORT_NOTE_ITEM_USE(gSpecialVar_ItemId); // evolution stone: consumed
++#endif
+ }
+ 
+ static bool8 MonCanEvolve(void)
+diff --git a/src/pokemon_icon.c b/src/pokemon_icon.c
+index 037b1bf..f4f356f 100644
+--- a/src/pokemon_icon.c
++++ b/src/pokemon_icon.c
+@@ -22,7 +22,48 @@ static void DestroyMonIconInternal(struct Sprite *sprite);
+ const u16 gMonIconPalettes[][16] = {
+     INCBIN_U16("graphics/pokemon/icon_palettes/icon_palette_0.gbapal"),
+     INCBIN_U16("graphics/pokemon/icon_palettes/icon_palette_1.gbapal"),
+-    INCBIN_U16("graphics/pokemon/icon_palettes/icon_palette_2.gbapal")
++    INCBIN_U16("graphics/pokemon/icon_palettes/icon_palette_2.gbapal"),
++#ifdef PORTABLE
++    // Retail out-of-range reads (game/NATIVE_CHANGES.md): gMonIconPaletteTable[3..5] point at
++    // gMonIconPalettes[3..5] (LoadMonIconPalettes: OBJ palettes of tags 56003-56005;
++    // LoadMonIconPalettesAt: BG palettes), and the trainer card's LoadMonIconGfx copies six
++    // palettes (192 bytes) from gMonIconPalettes into its BG palettes 5-10. On the ROM the 96 bytes
++    // after the array (0x083D37A0-0x083D37FF) are gMonIconTable[0..23]: the ROM addresses of these
++    // icons, read as colours (low halfword first). Natively the native gMonIconTable followed
++    // (other addresses). These rows hold exactly the ROM's bytes; nothing reads past them.
++#define ROM_ADDRESS_AS_COLORS(addr) (u16)((addr) & 0xFFFF), (u16)((addr) >> 16)
++    {
++        ROM_ADDRESS_AS_COLORS(0x08E76F5C), // gMonIcon_QuestionMark
++        ROM_ADDRESS_AS_COLORS(0x08D3018C), // gMonIcon_Bulbasaur
++        ROM_ADDRESS_AS_COLORS(0x08D30C8C), // gMonIcon_Ivysaur
++        ROM_ADDRESS_AS_COLORS(0x08D31B04), // gMonIcon_Venusaur
++        ROM_ADDRESS_AS_COLORS(0x08D32498), // gMonIcon_Charmander
++        ROM_ADDRESS_AS_COLORS(0x08D32FA8), // gMonIcon_Charmeleon
++        ROM_ADDRESS_AS_COLORS(0x08D33D20), // gMonIcon_Charizard
++        ROM_ADDRESS_AS_COLORS(0x08D346B4), // gMonIcon_Squirtle
++    },
++    {
++        ROM_ADDRESS_AS_COLORS(0x08D35218), // gMonIcon_Wartortle
++        ROM_ADDRESS_AS_COLORS(0x08D35FA0), // gMonIcon_Blastoise
++        ROM_ADDRESS_AS_COLORS(0x08D368F0), // gMonIcon_Caterpie
++        ROM_ADDRESS_AS_COLORS(0x08D37188), // gMonIcon_Metapod
++        ROM_ADDRESS_AS_COLORS(0x08D37D74), // gMonIcon_Butterfree
++        ROM_ADDRESS_AS_COLORS(0x08D38688), // gMonIcon_Weedle
++        ROM_ADDRESS_AS_COLORS(0x08D38FB4), // gMonIcon_Kakuna
++        ROM_ADDRESS_AS_COLORS(0x08D39BB8), // gMonIcon_Beedrill
++    },
++    {
++        ROM_ADDRESS_AS_COLORS(0x08D3A5F4), // gMonIcon_Pidgey
++        ROM_ADDRESS_AS_COLORS(0x08D3B148), // gMonIcon_Pidgeotto
++        ROM_ADDRESS_AS_COLORS(0x08D3BE8C), // gMonIcon_Pidgeot
++        ROM_ADDRESS_AS_COLORS(0x08D3C80C), // gMonIcon_Rattata
++        ROM_ADDRESS_AS_COLORS(0x08D3D31C), // gMonIcon_Raticate
++        ROM_ADDRESS_AS_COLORS(0x08D3DD28), // gMonIcon_Spearow
++        ROM_ADDRESS_AS_COLORS(0x08D3E94C), // gMonIcon_Fearow
++        ROM_ADDRESS_AS_COLORS(0x08D3F374), // gMonIcon_Ekans
++    },
++#undef ROM_ADDRESS_AS_COLORS
++#endif
+ };
+ 
+ const u8 *const gMonIconTable[] = {
+diff --git a/src/pokemon_storage_system_data.c b/src/pokemon_storage_system_data.c
+index ed09bdb..82c6712 100644
+--- a/src/pokemon_storage_system_data.c
++++ b/src/pokemon_storage_system_data.c
+@@ -1854,8 +1854,19 @@ static bool8 SetMenuTextsForItem(void)
+ 
+ static void SpriteCB_CursorShadow(struct Sprite *sprite)
+ {
++#ifdef PORTABLE
++    // Retail runs this sprite callback once more after the storage system freed
++    // gStorage (closing the PC): through NULL, cursorSprite comes from the BIOS
++    // region (BIOS open bus, platform/memfault.c) and its x/y from unmapped
++    // memory: the CPU open bus, i.e. the Thumb opcode two instructions after each
++    // LDRH in the ROM (0x6809 at 0x08094AC8 for x, 0x8441 at 0x08094ACE for y).
++    // Plain reads while gStorage is live. Found by the coverage runs (docs/COVERAGE.md).
++    sprite->x = Port_LoadWithOpenBus(&gStorage->cursorSprite->x, 2, 0x6809);
++    sprite->y = Port_LoadWithOpenBus(&gStorage->cursorSprite->y, 2, 0x8441) + 20;
++#else
+     sprite->x = gStorage->cursorSprite->x;
+     sprite->y = gStorage->cursorSprite->y + 20;
++#endif
+ }
+ 
+ static void CreateCursorSprites(void)
+diff --git a/src/pokemon_storage_system_misc.c b/src/pokemon_storage_system_misc.c
+index c753594..f7d6c00 100644
+--- a/src/pokemon_storage_system_misc.c
++++ b/src/pokemon_storage_system_misc.c
+@@ -461,7 +461,19 @@ static void MultiMove_GetMonsFromSelection(void)
+         {
+             struct BoxPokemon *boxMon = GetBoxedMonPtr(boxId, boxPosition);
+             // UB: possible null dereference
+-#ifdef UBFIX
++#ifdef PORTABLE
++            // Retail copies the struct from NULL, i.e. from the BIOS area: every
++            // word reads the BIOS open-bus value (emulated, not skipped).
++            if (boxMon == NULL)
++            {
++                u32 k;
++                u32 *dst = (u32 *)&sMultiMove->boxMons[monArrayId];
++                for (k = 0; k < sizeof(struct BoxPokemon) / 4; k++)
++                    dst[k] = Port_BiosOpenBus32(k * 4);
++            }
++            else
++                sMultiMove->boxMons[monArrayId] = *boxMon;
++#elif defined(UBFIX)
+             if (boxMon != NULL)
+                 sMultiMove->boxMons[monArrayId] = *boxMon;
+ #else
+diff --git a/src/random.c b/src/random.c
+index 635a1df..db1fa45 100644
+--- a/src/random.c
++++ b/src/random.c
+@@ -6,8 +6,19 @@
+ 
+ COMMON_DATA u32 gRngValue = 0;
+ 
++#ifdef PORTABLE
++extern u8 gPortLagAnchorsActive;
++void Port_RandomAnchor(void);
++#endif
++
+ u16 Random(void)
+ {
++#ifdef PORTABLE
++    // Differential testing only (anchored lag profiles, platform/frame.c):
++    // gPortLagAnchorsActive is never set in normal runs.
++    if (gPortLagAnchorsActive)
++        Port_RandomAnchor();
++#endif
+     gRngValue = ISO_RANDOMIZE1(gRngValue);
+     return gRngValue >> 16;
+ }
+diff --git a/src/save.c b/src/save.c
+index 36b960f..1313588 100644
+--- a/src/save.c
++++ b/src/save.c
+@@ -451,10 +451,34 @@ static u8 CopySaveSlotData(u16 sectorId, const struct SaveSectorLocation *locati
+         if (id == 0)
+             gLastWrittenSector = i;
+ 
++#ifdef PORTABLE
++        // An erased sector reads id 0xFFFF. The ROM then indexes locations[]
++        // out of bounds (on the GBA this hits the IWRAM mirror, i.e. the 8 bytes
++        // before gRamSaveSectorLocations) and computes a checksum that is never
++        // used because the signature does not match. Only that case is skipped;
++        // a valid signature with an invalid id would copy through a garbage
++        // pointer on hardware and is reported.
++        if (id >= NUM_SECTORS_PER_SLOT)
++        {
++            if (gSaveDataBufferPtr->signature == SECTOR_SIGNATURE)
++                Port_Unsupported("save sector with a valid signature but sector id out of range");
++            continue;
++        }
++#endif
+         checksum = CalculateChecksum(gSaveDataBufferPtr->data, locations[id].size);
+         if (gSaveDataBufferPtr->signature == SECTOR_SIGNATURE && gSaveDataBufferPtr->checksum == checksum)
+         {
+             u16 j;
++#ifdef PORTABLE
++            // At boot, CB2_InitCopyrightScreenAfterBootup loads the save before
++            // anything has set gPokemonStoragePtr (still NULL), so the PC
++            // storage sectors are copied to 0x00000000..0x000085D0: on the GBA
++            // the BIOS area and unmapped memory, where writes are ignored (the
++            // title screen's SetSaveBlocksPointers + LoadGameSave load them for
++            // real). Natively such an address is not mapped: skip the copy.
++            if ((uintptr_t)locations[id].data < 0x02000000)
++                continue;
++#endif
+             for (j = 0; j < locations[id].size; j++)
+                 locations[id].data[j] = gSaveDataBufferPtr->data[j];
+         }
+diff --git a/src/scrcmd.c b/src/scrcmd.c
+index 97b695e..fb8d3b4 100644
+--- a/src/scrcmd.c
++++ b/src/scrcmd.c
+@@ -106,12 +106,139 @@ bool8 ScrCmd_special(struct ScriptContext * ctx)
+     return FALSE;
+ }
+ 
++#ifdef PORTABLE
++// specialvar stores the result of a special called through a u16-returning
++// pointer. 50 specials return u8/bool8: on the GBA agbcc's callee extends the
++// value to the whole of r0 (e.g. ShouldTryRematchBattle: lsls/lsrs #24 or
++// movs r0, #1), natively (GCC, i386) only AL is defined and AH may hold garbage
++// (ShouldTryRematchBattle returned 0x0501 for TRUE, so a VS Seeker rematch
++// script took the non-rematch branch; found by the coverage runs,
++// docs/COVERAGE.md). These are called with their real return type. List: every
++// def_special of data/specials.inc whose definition returns u8 or bool8.
++u8 GetTrainerBattleMode(void);
++bool8 ShouldTryRematchBattle(void);
++u8 IsTrainerReadyForRematch(void);
++bool8 HasLeadMonBeenRenamed(void);
++bool8 NameRaterWasNicknameChanged(void);
++u8 CalculatePlayerPartyCount(void);
++u8 CountPartyNonEggMons(void);
++u8 GetPlayerTrainerIdOnesDigit(void);
++u8 Script_TryGainNewFanFromCounter(void);
++u8 GetBattleOutcome(void);
++u8 GetDaycareState(void);
++u8 GetNumLevelsGainedFromDaycare(void);
++bool8 DaycareMonReceivedMail(void);
++bool8 IsEnoughForCostInVar0x8005(void);
++bool8 SetCB2WhiteOut(void);
++u8 GetPlayerAvatarBike(void);
++u8 GetLeadMonFriendship(void);
++bool8 CreatePCMenu(void);
++bool8 EnterHallOfFame(void);
++u8 GetRandomSlotMachineId(void);
++u8 GetPlayerFacingDirection(void);
++bool8 LeadMonHasEffortRibbon(void);
++bool8 AreLeadMonEVsMaxedOut(void);
++bool8 PlayerHasGrassPokemonInParty(void);
++bool8 IsStarterFirstStageInParty(void);
++bool8 IsThereRoomInAnyBoxForMorePokemon(void);
++bool8 IsPokerusInParty(void);
++bool8 IsMonOTNameNotPlayers(void);
++bool8 DoesPartyHaveEnigmaBerry(void);
++bool8 CheckAddCoins(void);
++u8 GetDaycarePokemonCount(void);
++bool8 ShouldShowBoxWasFullMessage(void);
++bool8 IsWirelessAdapterConnected(void);
++bool8 IsThereMonInRoute5Daycare(void);
++u8 GetNumLevelsGainedForRoute5DaycareMon(void);
++bool8 DoesPlayerPartyContainSpecies(void);
++u8 GetMartClerkObjectId(void);
++bool8 OpenMuseumFossilPic(void);
++bool8 CloseMuseumFossilPic(void);
++bool8 BufferTMHMMoveName(void);
++bool8 HasAtLeastOneBerry(void);
++bool8 Script_HasEnoughBerryPowder(void);
++bool8 Script_TakeBerryPowder(void);
++bool8 CapeBrinkGetMoveToTeachLeadPokemon(void);
++bool8 HasLearnedAllMovesFromCapeBrinkTutor(void);
++u8 GetSeagallopNumber(void);
++bool8 IsPlayerLeftOfVermilionSailor(void);
++bool8 IsBadEggInParty(void);
++bool8 IsPlayerNotInTrainerTowerLobby(void);
++bool8 PlayerPartyContainsSpeciesWithPlayerID(void);
++
++static u16 (*const sNarrowSpecials[])(void) = {
++    (u16 (*)(void))GetTrainerBattleMode,
++    (u16 (*)(void))ShouldTryRematchBattle,
++    (u16 (*)(void))IsTrainerReadyForRematch,
++    (u16 (*)(void))HasLeadMonBeenRenamed,
++    (u16 (*)(void))NameRaterWasNicknameChanged,
++    (u16 (*)(void))CalculatePlayerPartyCount,
++    (u16 (*)(void))CountPartyNonEggMons,
++    (u16 (*)(void))GetPlayerTrainerIdOnesDigit,
++    (u16 (*)(void))Script_TryGainNewFanFromCounter,
++    (u16 (*)(void))GetBattleOutcome,
++    (u16 (*)(void))GetDaycareState,
++    (u16 (*)(void))GetNumLevelsGainedFromDaycare,
++    (u16 (*)(void))DaycareMonReceivedMail,
++    (u16 (*)(void))IsEnoughForCostInVar0x8005,
++    (u16 (*)(void))SetCB2WhiteOut,
++    (u16 (*)(void))GetPlayerAvatarBike,
++    (u16 (*)(void))GetLeadMonFriendship,
++    (u16 (*)(void))CreatePCMenu,
++    (u16 (*)(void))EnterHallOfFame,
++    (u16 (*)(void))GetRandomSlotMachineId,
++    (u16 (*)(void))GetPlayerFacingDirection,
++    (u16 (*)(void))LeadMonHasEffortRibbon,
++    (u16 (*)(void))AreLeadMonEVsMaxedOut,
++    (u16 (*)(void))PlayerHasGrassPokemonInParty,
++    (u16 (*)(void))IsStarterFirstStageInParty,
++    (u16 (*)(void))IsThereRoomInAnyBoxForMorePokemon,
++    (u16 (*)(void))IsPokerusInParty,
++    (u16 (*)(void))IsMonOTNameNotPlayers,
++    (u16 (*)(void))DoesPartyHaveEnigmaBerry,
++    (u16 (*)(void))CheckAddCoins,
++    (u16 (*)(void))GetDaycarePokemonCount,
++    (u16 (*)(void))ShouldShowBoxWasFullMessage,
++    (u16 (*)(void))IsWirelessAdapterConnected,
++    (u16 (*)(void))IsThereMonInRoute5Daycare,
++    (u16 (*)(void))GetNumLevelsGainedForRoute5DaycareMon,
++    (u16 (*)(void))DoesPlayerPartyContainSpecies,
++    (u16 (*)(void))GetMartClerkObjectId,
++    (u16 (*)(void))OpenMuseumFossilPic,
++    (u16 (*)(void))CloseMuseumFossilPic,
++    (u16 (*)(void))BufferTMHMMoveName,
++    (u16 (*)(void))HasAtLeastOneBerry,
++    (u16 (*)(void))Script_HasEnoughBerryPowder,
++    (u16 (*)(void))Script_TakeBerryPowder,
++    (u16 (*)(void))CapeBrinkGetMoveToTeachLeadPokemon,
++    (u16 (*)(void))HasLearnedAllMovesFromCapeBrinkTutor,
++    (u16 (*)(void))GetSeagallopNumber,
++    (u16 (*)(void))IsPlayerLeftOfVermilionSailor,
++    (u16 (*)(void))IsBadEggInParty,
++    (u16 (*)(void))IsPlayerNotInTrainerTowerLobby,
++    (u16 (*)(void))PlayerPartyContainsSpeciesWithPlayerID
++};
++
++static u16 CallSpecialForResult(u16 (*func)(void))
++{
++    u32 i;
++    for (i = 0; i < NELEMS(sNarrowSpecials); i++)
++        if (sNarrowSpecials[i] == func)
++            return ((u8 (*)(void))func)();
++    return func();
++}
++#endif
++
+ bool8 ScrCmd_specialvar(struct ScriptContext * ctx)
+ {
+     u16 * varPtr = GetVarPointer(ScriptReadHalfword(ctx));
+     u16 (*const *specialPtr)(void) = &gSpecials[ScriptReadHalfword(ctx)];
+     if (specialPtr < gSpecialsEnd)
++#ifdef PORTABLE
++        *varPtr = CallSpecialForResult(*specialPtr);
++#else
+         *varPtr = (*specialPtr)();
++#endif
+     else
+         AGB_ASSERT_EX(0, ABSPATH("scrcmd.c"), 263);
+     return FALSE;
+diff --git a/src/script.c b/src/script.c
+index d0433bd..bf8de17 100644
+--- a/src/script.c
++++ b/src/script.c
+@@ -117,8 +117,14 @@ bool8 RunScriptCommand(struct ScriptContext *ctx)
+ 
+             if (ctx->scriptPtr == gNullScriptPtr)
+             {
++#ifdef PORTABLE
++                // The GBA halts here forever (Halt in an endless loop: the game
++                // is soft-locked). The simulator reports it instead of spinning.
++                Port_Hang("script reached gNullScriptPtr: the retail game halts forever here");
++#else
+                 while (1)
+                     asm("svc 2"); // HALT
++#endif
+             }
+ 
+             cmdCode = *(ctx->scriptPtr);
+diff --git a/src/slot_machine.c b/src/slot_machine.c
+index aa5d4c6..6bdb9f2 100644
+--- a/src/slot_machine.c
++++ b/src/slot_machine.c
+@@ -1844,6 +1844,32 @@ static void UpdateReelIconSprites(const s16 * reelPosPtr, const s16 * yposPtr)
+     s32 i, j;
+     s32 reelPos, ypos;
+ 
++#ifdef PORTABLE
++    // Leaving the slot machine frees sSlotMachineState and sSlotMachineGfxManager, but
++    // Task_SpinReels is never destroyed: it keeps calling this with both pointers NULL.
++    // Retail then reads every sprite pointer from the BIOS region (the BIOS open-bus word,
++    // an ARM opcode 0xE.......: unmapped memory), so the y2/anim/paletteNum stores below go
++    // to unmapped memory (ignored) and every load only feeds those stores: no effect on
++    // hardware. Natively the read half of the sprite bitfield read-modify-write would read
++    // the CPU open bus and end the environment as INEXACT. The same calls are made (on a
++    // stack sprite nobody reads; IndexOfSpritePaletteTag only reads), so the function-entry
++    // counts the differential-test build anchors lag VBlanks on stay the ROM's (docs/LAG.md).
++    // See game/NATIVE_CHANGES.md.
++    if (sSlotMachineGfxManager == NULL)
++    {
++        struct Sprite unused = {0};
++        for (i = 0; i < NUM_REELS; i++)
++        {
++            for (j = 0; j < REEL_LOAD_LENGTH; j++)
++            {
++                StartSpriteAnim(&unused, 0);
++                StartSpriteAnim(&unused, 0);
++                IndexOfSpritePaletteTag(0);
++            }
++        }
++        return;
++    }
++#endif
+     for (i = 0; i < NUM_REELS; i++)
+     {
+         reelPos = *reelPosPtr;
+diff --git a/src/sprite.c b/src/sprite.c
+index d0198d5..c39558f 100644
+--- a/src/sprite.c
++++ b/src/sprite.c
+@@ -614,7 +614,14 @@ void DestroySprite(struct Sprite *sprite)
+         if (!sprite->usingSheet)
+         {
+             u16 i;
++#ifdef PORTABLE
++            // sprite == NULL (see FreeSpriteTiles): images comes from the BIOS
++            // region, images->size from unmapped memory: LDRH at ROM 0x080072A0,
++            // open bus = 0x88A8 (at 0x080072A4).
++            u16 tileEnd = (Port_LoadWithOpenBus(&sprite->images->size, 2, 0x88A8) / TILE_SIZE_4BPP) + sprite->oam.tileNum;
++#else
+             u16 tileEnd = (sprite->images->size / TILE_SIZE_4BPP) + sprite->oam.tileNum;
++#endif
+             for (i = sprite->oam.tileNum; i < tileEnd; i++)
+                 FREE_SPRITE_TILE(i);
+         }
+@@ -868,13 +875,31 @@ void ResetAllSprites(void)
+ 
+ void FreeSpriteTiles(struct Sprite *sprite)
+ {
++#ifdef PORTABLE
++    // Retail also runs this for sprite == NULL (DestroySpriteAndFreeResources(NULL),
++    // e.g. PokeSum_CreateMonMarkingsSprite when the summary screen opens). The
++    // template pointer then comes from the BIOS region (BIOS open bus, emulated
++    // by platform/memfault.c) and the tag is read through it from unmapped
++    // memory: the CPU open bus, i.e. the Thumb opcode two instructions after
++    // the LDRH at ROM 0x080077B0 (0x4281 at 0x080077B4).
++    u16 tag = Port_LoadWithOpenBus(&sprite->template->tileTag, 2, 0x4281);
++    if (tag != TAG_NONE)
++        FreeSpriteTilesByTag(tag);
++#else
+     if (sprite->template->tileTag != TAG_NONE)
+         FreeSpriteTilesByTag(sprite->template->tileTag);
++#endif
+ }
+ 
+ void FreeSpritePalette(struct Sprite *sprite)
+ {
++#ifdef PORTABLE
++    // As FreeSpriteTiles: LDRH at ROM 0x080077CC, open bus = 0xF92F (the second
++    // half of the BL at 0x080077CE).
++    FreeSpritePaletteByTag(Port_LoadWithOpenBus(&sprite->template->paletteTag, 2, 0xF92F));
++#else
+     FreeSpritePaletteByTag(sprite->template->paletteTag);
++#endif
+ }
+ 
+ void FreeSpriteOamMatrix(struct Sprite *sprite)
+diff --git a/src/task.c b/src/task.c
+index 01503dc..7ab4085 100644
+--- a/src/task.c
++++ b/src/task.c
+@@ -89,6 +89,19 @@ void DestroyTask(u8 taskId)
+ #if REVISION >= 0xA
+     // Bounds check on the task ID.
+     if (taskId >= NUM_TASKS) return;
++#elif defined(PORTABLE)
++    // DestroyTask(FindTaskIdByFunc(func)) when no task runs func passes
++    // TASK_NONE (e.g. the title screen restart destroys the PRESS START task
++    // twice). Retail then reads gTasks[255].isActive at 0x0300786C, inside the
++    // unused bottom of the IWRAM stack, which is still zero from
++    // RegisterRamReset (checked on mGBA: the retail stack never grows that
++    // deep in the boot, title, new-game and overworld scenarios), so nothing
++    // happens. With the mirror layout the native code reads the same address,
++    // which is always zero natively (the game stack is in .pnstate), so
++    // TASK_NONE takes the retail path. Other ids past the array were never
++    // observed: fail loudly.
++    if (taskId >= NUM_TASKS && taskId != TASK_NONE)
++        Port_Fatal("DestroyTask(%u): task id out of range", taskId);
+ #endif
+     if (gTasks[taskId].isActive)
+     {
+diff --git a/src/teachy_tv.c b/src/teachy_tv.c
+index 0366330..44a8752 100644
+--- a/src/teachy_tv.c
++++ b/src/teachy_tv.c
+@@ -1135,7 +1135,17 @@ static void TeachyTvGrassAnimationObjCallback(struct Sprite *sprite)
+     s16 *data = gTasks[sprite->data[0]].data;
+     struct Sprite *objAddr = &gSprites[data[1]];
+ 
++#ifdef PORTABLE
++    // TeachyTvPrepBattle frees sResources (NULL) before a Pokedude battle, but the grass
++    // sprites keep animating through the battle transition: retail then loads
++    // NULL->grassAnimDisabled, GBA address 0x00004006 (unmapped), i.e. the CPU open bus:
++    // the Thumb opcode two instructions after this ldrb (0x0815BB94) in the ROM, 0xD10C
++    // (bne at 0x0815BB98). Byte 2 of 0xD10CD10C is 0x0C: the sprite is not destroyed.
++    // game/NATIVE_CHANGES.md.
++    if (Port_LoadWithOpenBus(&sResources->grassAnimDisabled, 1, 0xD10C) == 1)
++#else
+     if (sResources->grassAnimDisabled == 1)
++#endif
+         DestroySprite(sprite);
+     else
+     {
+diff --git a/src/wild_encounter.c b/src/wild_encounter.c
+index fa358c0..f35a32b 100644
+--- a/src/wild_encounter.c
++++ b/src/wild_encounter.c
+@@ -245,7 +245,14 @@ static u32 GenerateUnownPersonalityByLetter(u8 letter)
+     u32 personality;
+     do
+     {
++#ifdef PORTABLE
++        // Evaluation order is unspecified in C; the ROM calls the left
++        // Random() first (high half). Sequenced explicitly.
++        u32 hi = Random();
++        personality = (hi << 16) | Random();
++#else
+         personality = (Random() << 16) | Random();
++#endif
+     } while (GetUnownLetterByPersonalityLoByte(personality) != letter);
+     return personality;
+ }

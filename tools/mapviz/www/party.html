@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokemonFireRedRL party</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0d10; --panel: #12161b; --panel2: #171c22; --text: #e6e8eb; --dim: #9aa3ad; --muted: #6b7480;
+    --line: #2a3038; --grid: #222831; --accent: #ffcb05; --bar: #3987e5; --good: #0ca30c; --warn: #c98500;
+    --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+               font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: var(--accent); }
+  .dim { color: var(--dim); } .muted { color: var(--muted); }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(11, 13, 16, 0.94); backdrop-filter: blur(4px);
+           border-bottom: 1px solid var(--line); padding: 8px 16px; }
+  header .row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+  header .row + .row { margin-top: 6px; }
+  h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  h2 { font-size: 14px; margin: 18px 0 6px; font-weight: 650; }
+  h2 .dim { font-weight: 400; font-size: 12px; margin-left: 6px; }
+  button, select, input { font: inherit; color: var(--text); background: #1c2129; border: 1px solid var(--line);
+                          border-radius: 6px; padding: 2px 9px; }
+  button { cursor: pointer; }
+  button[aria-pressed="true"] { background: #33404f; border-color: #4b5d72; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input[type="search"] { width: min(220px, 60vw); background: #11151a; }
+  .chipset { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+  .chipset button { padding: 1px 7px; min-width: 26px; }
+  #state.live { color: #7ee787; } #state.busy { color: #f2cc60; } #state.down { color: #ff7b72; }
+  main { padding: 12px 16px 48px; max-width: 1400px; }
+  .msg { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin: 8px 0; }
+  .msg.err { border-color: #5b2a2a; color: #ffb3ad; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 8px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .tile .t { color: var(--dim); font-size: 12px; }
+  .tile .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .s { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 4px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
+  th { background: var(--panel2); color: var(--dim); font-weight: 600; white-space: nowrap; }
+  th.n, td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: #161b21; }
+  tr.detail > td { background: #0f1317; padding: 8px 12px 12px; }
+  td.name { font-weight: 600; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+  .chip { display: inline-flex; gap: 4px; padding: 0 6px; border-radius: 4px; background: #1b2027; font-size: 12px;
+          white-space: nowrap; }
+  .chip b { font-weight: 500; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .chip.tm { box-shadow: inset 0 -2px 0 var(--accent); }
+  .ico { display: inline-block; width: 32px; height: 32px; margin: -4px 2px -4px -4px; vertical-align: middle;
+         background: url(world/icons.png) no-repeat; image-rendering: pixelated; }
+  .party { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 4px 6px; min-width: 560px; }
+  .mon { display: flex; align-items: flex-start; gap: 4px; padding: 3px 6px 4px 2px; border-radius: 6px; background: #161b21; }
+  tr:has(> td.name .ico) > td { vertical-align: middle; }
+  .mon .ico { margin: 0; flex: none; }
+  .mon > div { min-width: 0; }
+  .mon .sp { font-weight: 600; } .mon .lv { color: var(--dim); font-variant-numeric: tabular-nums; }
+  .mon .mv { color: var(--dim); font-size: 11px; }
+  .hp { display: block; height: 3px; border-radius: 2px; background: #232a33; margin: 1px 0 1px; width: 120px; }
+  .hp i { display: block; height: 100%; border-radius: 2px; }
+  .bar { display: inline-block; height: 8px; border-radius: 2px; background: var(--bar); vertical-align: 0; }
+  .note { color: var(--muted); font-size: 12px; margin: 4px 0 0; max-width: 980px; }
+  dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; }
+  dl.kv dt { color: var(--dim); } dl.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } main { padding: 10px 12px 40px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Party</h1>
+    <span id="run" class="dim"></span>
+    <span id="state" class="dim">loading…</span>
+    <button id="refresh" title="Read every env's party again (one copy of the records)">Refresh</button>
+    <button id="auto" aria-pressed="false" title="Refresh every 60 s while this page is visible">Auto 60 s</button>
+    <span class="dim">·</span>
+    <a href="index.html">Map</a>
+  </div>
+  <div class="row">
+    <span class="dim">Badges</span> <span id="badges" class="chipset"></span>
+    <label class="dim">Scope <select id="scope"></select></label>
+    <label class="dim">Now <select id="where">
+      <option value="all">anywhere</option><option value="field">outside battle</option>
+      <option value="battle">in battle</option><option value="trainer">trainer battle</option>
+    </select></label>
+    <label class="dim" title="an HM in the bag whose move no party mon knows">HM <select id="hm">
+      <option value="all">any</option><option value="gap">in bag, not taught</option><option value="none">no untaught HM</option>
+    </select></label>
+    <input id="q" type="search" placeholder="species in party…" aria-label="Filter by species">
+  </div>
+</header>
+<main>
+  <div id="err"></div>
+  <div id="tiles" class="tiles"></div>
+
+  <div class="grid2">
+    <section>
+      <h2>Levels by rank <span class="dim">the party sorted by level, per env</span></h2>
+      <div class="tablewrap"><table id="ranks"></table></div>
+    </section>
+    <section>
+      <h2>Leads <span class="dim">the mon in slot 1</span></h2>
+      <div class="tablewrap"><table id="leads"></table></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>HMs <span class="dim">share of the envs shown</span></h2>
+      <div class="tablewrap"><table id="hms"></table></div>
+      <h2>Game counters <span class="dim">cumulative over the save's lineage (relay batons, rewinds keep them)</span></h2>
+      <div class="tablewrap"><table id="stats"></table></div>
+    </section>
+    <section>
+      <h2>Bag <span class="dim">top 20 consumables by envs holding</span></h2>
+      <div class="tablewrap"><table id="bag"></table></div>
+    </section>
+  </div>
+
+  <h2>Species <span class="dim">click a row for every move and the levels</span></h2>
+  <div class="tablewrap"><table id="species"></table></div>
+
+  <h2>Behaviour sample <span class="dim">party management and battle habits over a sampling window</span></h2>
+  <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <select id="secs" aria-label="Sample length">
+      <option value="30">30 s</option><option value="60" selected>60 s</option>
+      <option value="120">2 min</option><option value="300">5 min</option>
+    </select>
+    <button id="start">Start sample</button>
+    <span id="sstate" class="dim"></span>
+  </div>
+  <p class="note">Uses the Badges, Scope and HM filters (not "Now"). The sampler copies the records 10 times a second on
+    one core for the chosen time and compares consecutive copies. The game runs about 66x real time, so anything
+    undone within 0.1 s is missed: counts are lower bounds, shares are fair. Rewinds, new lives and relay handoffs are
+    detected and never counted as actions.</p>
+  <div id="beh"></div>
+
+  <h2>Envs <span class="dim" id="envnote"></span></h2>
+  <div class="tablewrap"><table id="envs"></table></div>
+  <div style="margin-top:6px"><button id="more">Show all</button></div>
+</main>
+<script src="party.js"></script>
+</body>
+</html>
